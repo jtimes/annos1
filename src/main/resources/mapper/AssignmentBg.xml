@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.AssignmentBgMapper">
+	
+	<select id="selectAssignmentBgList" resultType="egovMap" parameterType="hashmap">
+	/* AssignmentBgMapper.selectAssignmentBgList */
+		SELECT t.*
+		FROM assignment_bg t
+		WHERE t.tryyn = 'Y'
+			AND t.try_count <![CDATA[ < ]]> 20	/* 상태가 안바뀌고 계속 시도하는 것 방지 */
+			AND t.status = '0' /* 최초, zip 해제 후 경우만 */
+			AND TIMESTAMPDIFF(SECOND, t.updatetime, CURRENT_TIMESTAMP) 
+				BETWEEN 20 AND 3600 /* 20 초 ~ 1시간 이내인 경우만 */
+		ORDER BY t.no
+	</select>
+	
+	<insert id="assignmentBgAdd" parameterType="hashmap">
+	/* AssignmentBgMapper.assignmentBgAdd */
+		INSERT INTO assignment_bg
+			(assignmentno, note, from_location, to_location, userno)
+		VALUES
+			(#{assignmentno}, #{note}, #{fromLocation}, #{toLocation}, #{userno})
+	</insert>
+	
+	<update id="updateAssignmentBgJob" parameterType="hashmap">
+	/* AssignmentBgMapper.updateAssignmentBgJob */
+		UPDATE assignment_bg SET
+			status = #{status}, tryyn = #{tryyn}
+			, try_count = try_count + 1
+			, updatetime = CURRENT_TIMESTAMP
+			<if test='tempPath != null and tempPath != ""'>, from_location = #{tempPath}</if>
+		WHERE no = #{no}
+	</update>
+	
+	<select id="selectAssignmentDirTotal" resultType="int" parameterType="hashmap">
+	/* AssignmentBgMapper.selectAssignmentDirTotal */
+		SELECT count(*) FROM assignment_bg t
+		WHERE 1=1
+			<if test='status != null and status != ""'>AND t.status = #{status}</if>
+			<if test='status == null or status == ""'>AND t.status != '5'</if>
+	</select>
+	
+	<select id="selectAssignmentDirList" resultType="egovMap" parameterType="hashmap">
+	/* AssignmentBgMapper.selectAssignmentDirList */
+		SELECT t.*
+		FROM assignment_bg t
+		WHERE 1=1
+			<if test='status != null and status != ""'>AND t.status = #{status}</if>
+			<if test='status == null or status == ""'>AND t.status != '5'</if>
+		ORDER BY t.no DESC
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+	
+	<select id="assignmentDiskUsageCheck" resultType="egovMap" parameterType="hashmap">
+	/* AssignmentBgMapper.assignmentDiskUsageCheck */
+		SELECT t.no, t.usage, t.updatetime, t.delyn
+		FROM assignment t 
+		WHERE t.delyn = 'N' AND t.updatetime <![CDATA[<]]> DATE_SUB(NOW(), INTERVAL 1 HOUR)
+	</select>
+	
+	<select id="assignmentAliveList" resultType="egovMap" parameterType="hashmap">
+	/* AssignmentBgMapper.assignmentAliveList */
+		SELECT t.no, t.location, t.updatetime
+		FROM assignment t 
+		WHERE t.delyn = 'N'
+	</select>
+	
+	<select id="assignmentIncomingList" resultType="egovMap" parameterType="hashmap">
+	/* AssignmentBgMapper.assignmentIncomingList */
+		SELECT 
+			`no`, assignmentno, zippath, from_location, to_location
+			, status, creationtime, updatetime
+		FROM assignment_incoming
+		ORDER BY assignmentno;
+	</select>
+	
+	<insert id="assignmentIncomingAdd" parameterType="hashmap" useGeneratedKeys="true" keyProperty="no">
+	/* AssignmentBgMapper.assignmentIncomingAdd */
+		INSERT INTO assignment_incoming
+			(assignmentno, filename, zippath, from_location, to_location, status)
+		VALUES
+			(#{assignmentno}, #{filename}, #{zippath}, #{fromLocation}, #{toLocation}, '1')
+		<selectKey keyProperty="no" resultType="Integer" order="AFTER">
+			SELECT LAST_INSERT_ID() 
+		</selectKey>
+	</insert>
+	
+	<update id="updateAssignmentIncomingStatus" parameterType="hashmap">
+	/* AssignmentBgMapper.updateAssignmentIncomingStatus */
+		UPDATE assignment_incoming SET
+			status = #{status}
+			, updatetime = CURRENT_TIMESTAMP
+		WHERE no = #{no}
+	</update>
+	
+</mapper>

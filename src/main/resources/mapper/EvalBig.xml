@@ -1,0 +1,634 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.EvalBigMapper">
+		
+	<insert id="evaluationBigSetup" parameterType="hashmap">
+	/* EvalBigMapper.evaluationBigSetup 
+	*/
+		INSERT INTO eval_big
+			(assignmentno, datasetno, note, files, `path`, status, `type`)
+		VALUES
+			((select assignmentno from dataset where no = #{datasetno})
+			, #{datasetno}, #{note}, #{files}, #{path}, '0', #{type})
+	</insert>
+	
+	<select id="evaluationBigStatus" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.evaluationBigStatus */
+		SELECT 
+			a.no, a.assignmentno, a.datasetno, a.note
+			, ifnull(a.files, '') as files
+			, ifnull(a.path, '') as path
+			, ifnull(a.status, '') as status
+			, a.type
+		FROM eval_big a
+		WHERE 1=1
+			<if test='datasetno != null and datasetno != ""'>AND a.datasetno = #{datasetno}</if>
+			<if test='status != null and status != ""'>AND a.status = #{status}</if>
+			<if test='type != null and type != ""'>AND a.type = #{type}</if>
+	</select>
+	
+	<update id="updateEvalBigStatus" parameterType="egovMap">
+	/* EvalBigMapper.updateEvalBigStatus */
+		UPDATE eval_big
+		SET status = #{status}
+		WHERE no = #{no}
+	</update>
+	
+	<select id="evaluationClsMin" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.evaluationClsMin */
+		SELECT `no`, datasetno, name, `map`
+			, ap_50, precision_50, recall_50, f1_50
+			, ap_55, precision_55, recall_55, f1_55
+			, ap_60, precision_60, recall_60, f1_60
+			, ap_65, precision_65, recall_65, f1_65
+			, ap_70, precision_70, recall_70, f1_70
+			, ap_75, precision_75, recall_75, f1_75
+			, ap_80, precision_80, recall_80, f1_80
+			, ap_85, precision_85, recall_85, f1_85
+			, ap_90, precision_90, recall_90, f1_90
+			, ap_95, precision_95, recall_95, f1_95
+			, creationtime, isopen
+		FROM eval_cls c
+		WHERE 1=1
+			<if test='datasetno != null and datasetno != ""'>AND c.datasetno = #{datasetno}</if>
+			<if test='name != null and name != ""'>AND c.name = #{name}</if>
+			<if test='isopen != null and isopen != ""'>AND c.isopen = #{isopen}</if>
+		ORDER BY c.no
+	</select>
+	
+	<select id="evaluationClsMax" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.evaluationClsMax */
+		SELECT c.*
+		FROM eval_cls
+		WHERE 1=1
+			<if test='datasetno != null and datasetno != ""'>AND c.datasetno = #{datasetno}</if>
+			<if test='name != null and name != ""'>AND c.name = #{name}</if>
+			<if test='isopen != null and isopen != ""'>AND c.isopen = #{isopen}</if>
+		ORDER BY c.no
+	</select>
+	
+	<insert id="evaluationClsInsert" parameterType="hashmap">
+	/* EvalBigMapper.evaluationClsInsert */
+		INSERT INTO eval_cls (assignmentno, datasetno, name)
+		VALUES (#{assignmentno}, #{datasetno}, #{name})
+	</insert>
+	
+	<update id="evaluationClsUpdate" parameterType="hashmap">
+	/* EvalBigMapper.evaluationClsUpdate */
+		UPDATE eval_cls
+		SET 
+			name = #{name}
+			<if test='mAP != null and mAP != ""'>, map = #{mAP}</if>
+			<if test='type != null and type != ""'>
+			, ap_${type} = #{AP}
+			, precision_${type} = #{precision}
+			, recall_${type} = #{recall}
+			, f1_${type} = #{F1}
+			, recall_precision_curve_${type} = #{recallPrecisionCurve}
+			, interpolated_recall_precision_curve_${type} = #{interpolatedRecallPrecisionCurve}</if>
+			<if test='isopen != null and isopen != ""'>, isopen = #{isopen}</if>
+		WHERE datasetno = #{datasetno} AND name = #{name}
+	</update>
+	
+	<update id="evaluationObjRefClear" parameterType="hashmap">
+	/* EvalBigMapper.evaluationObjRefClear */
+			DELETE FROM eval_obj_pred${predFlag}_ref
+			WHERE assignmentno = #{assignmentno}
+	</update>
+	
+	<update id="evaluationObjDsRefClear" parameterType="hashmap">
+	/* EvalBigMapper.evaluationObjDsRefClear */
+			DELETE FROM eval_obj_pred${predFlag}_ref
+			WHERE datasetno = #{datasetno}
+			<if test='isreset == "1"'> OR odatasetno = #{datasetno} </if>
+	</update>
+	
+	<update id="evaluationObjDsClear" parameterType="hashmap">
+	/* EvalBigMapper.evaluationObjDsClear */
+			DELETE FROM eval_obj
+			WHERE datasetno = #{datasetno}
+	</update>
+	
+	<update id="evaluationObjClear" parameterType="hashmap">
+	/* EvalBigMapper.evaluationObjClear */
+			DELETE FROM eval_obj
+			WHERE assignmentno = #{assignmentno}
+	</update>
+	
+	<update id="evaluationFileRefClear" parameterType="hashmap">
+	/* EvalBigMapper.evaluationFileClear */
+		DELETE FROM eval_file_ref
+		WHERE datasetno = #{datasetno}
+	</update>
+	<update id="evaluationFileClear" parameterType="hashmap">
+	/* EvalBigMapper.evaluationFileClear */
+		DELETE FROM eval_file
+		WHERE datasetno = #{datasetno}
+	</update>
+	
+	<insert id="evaluationObjInsertBulk" parameterType="hashmap">
+	/* EvalBigMapper.evaluationObjInsertBulk 
+	*/
+		INSERT INTO eval_obj
+			(assignmentno, datasetno, cls, obj_id, gt_flag, pred_flag
+			, correct, total, iou, confidence, diagonal
+			, ratio, width, height, histogram, shape_type
+			, tp_50, tp_55, tp_60, tp_65, tp_70, tp_75, tp_80, tp_85, tp_90, tp_95
+			, fp_50, fp_55, fp_60, fp_65, fp_70, fp_75, fp_80, fp_85, fp_90, fp_95
+			, fn_50, fn_55, fn_60, fn_65, fn_70, fn_75, fn_80, fn_85, fn_90, fn_95
+			, blur_coef, file_name)
+		VALUES <foreach collection="list" item="item" separator=",">
+			(#{assignmentno}, #{datasetno}, #{item.cls}, ifnull(#{item.object_id}, #{item.obj_id}), #{item.gt_flag}, #{item.pred_flag}
+			, #{item.correct}, #{item.total}, #{item.iou}, #{item.confidence}, #{item.diagonal}
+			, #{item.ratio}, #{item.width}, #{item.height}, #{item.histogram}, #{item.shape_type}
+			, #{item.TP_50}, #{item.TP_55}, #{item.TP_60}, #{item.TP_65}, #{item.TP_70}, #{item.TP_75}, #{item.TP_80}, #{item.TP_85}, #{item.TP_90}, #{item.TP_95}
+			, #{item.FP_50}, #{item.FP_55}, #{item.FP_60}, #{item.FP_65}, #{item.FP_70}, #{item.FP_75}, #{item.FP_80}, #{item.FP_85}, #{item.FP_90}, #{item.FP_95}
+			, #{item.FN_50}, #{item.FN_55}, #{item.FN_60}, #{item.FN_65}, #{item.FN_70}, #{item.FN_75}, #{item.FN_80}, #{item.FN_85}, #{item.FN_90}, #{item.FN_95}
+			, #{item.blur_coef}, #{item.file_name}) </foreach>
+	</insert>
+	
+	<insert id="evaluationFileInsertBulk" parameterType="hashmap">
+	/* EvalBigMapper.evaluationFileInsertBulk 
+	*/
+		INSERT INTO eval_file
+			(datasetno, filename, obj_count)
+		VALUES <foreach collection="list" item="item" separator=",">
+			(#{datasetno}, #{item.fileName}, #{item.objectCnt}) </foreach>
+	</insert>
+	
+	
+	
+	<sql id="analCondition">
+		<if test="name != null and name != ''">and a.name = #{name}</if>
+		<if test="ap50from != null and ap50from != ''">and a.ap_50 <![CDATA[>=]]> #{ap50from}</if>
+		<if test="ap50to != null and ap50to != ''">and a.ap_50 <![CDATA[<=]]> #{ap50to}</if>
+		<if test="ap55from != null and ap55from != ''">and a.ap_55 <![CDATA[>=]]> #{ap55from}</if>
+		<if test="ap55to != null and ap55to != ''">and a.ap_55 <![CDATA[<=]]> #{ap55to}</if>
+		<if test="ap60from != null and ap60from != ''">and a.ap_60 <![CDATA[>=]]> #{ap60from}</if>
+		<if test="ap60to != null and ap60to != ''">and a.ap_60 <![CDATA[<=]]> #{ap60to}</if>
+		<if test="ap65from != null and ap65from != ''">and a.ap_65 <![CDATA[>=]]> #{ap65from}</if>
+		<if test="ap65to != null and ap65to != ''">and a.ap_65 <![CDATA[<=]]> #{ap65to}</if>
+		<if test="ap70from != null and ap70from != ''">and a.ap_70 <![CDATA[>=]]> #{ap70from}</if>
+		<if test="ap70to != null and ap70to != ''">and a.ap_70 <![CDATA[<=]]> #{ap70to}</if>
+		<if test="ap75from != null and ap75from != ''">and a.ap_75 <![CDATA[>=]]> #{ap75from}</if>
+		<if test="ap75to != null and ap75to != ''">and a.ap_75 <![CDATA[<=]]> #{ap75to}</if>
+		<if test="ap80from != null and ap80from != ''">and a.ap_80 <![CDATA[>=]]> #{ap80from}</if>
+		<if test="ap80to != null and ap80to != ''">and a.ap_80 <![CDATA[<=]]> #{ap80to}</if>
+		<if test="ap85from != null and ap85from != ''">and a.ap_85 <![CDATA[>=]]> #{ap85from}</if>
+		<if test="ap85to != null and ap85to != ''">and a.ap_85 <![CDATA[<=]]> #{ap85to}</if>
+		<if test="ap90from != null and ap90from != ''">and a.ap_90 <![CDATA[>=]]> #{ap90from}</if>
+		<if test="ap90to != null and ap90to != ''">and a.ap_90 <![CDATA[<=]]> #{ap90to}</if>
+		<if test="ap95from != null and ap95from != ''">and a.ap_95 <![CDATA[>=]]> #{ap95from}</if>
+		<if test="ap95to != null and ap95to != ''">and a.ap_95 <![CDATA[<=]]> #{ap95to}</if>
+		<if test="mapfrom != null and mapfrom != ''">and a.mAP <![CDATA[>=]]> #{mapfrom}</if>
+		<if test="mapto != null and mapto != ''">and a.mAP <![CDATA[<=]]> #{mapto}</if>
+	</sql>
+	
+	<sql id="labelListOrderBy">
+		<if test='orderColumn != null and orderColumn != ""'>
+		ORDER BY a.${orderColumn} ${orderBy}
+		</if> <if test='orderColumn == null or orderColumn == ""'>
+		ORDER BY a.edsno </if>
+		LIMIT #{limit} OFFSET #{offset}
+	</sql>
+	
+	<select id="selectEvalClsListTotal" resultType="int" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalClsListTotal */
+		SELECT count(*) 
+		FROM eval_cls a
+		WHERE a.datasetno = #{datasetno}
+		<include refid="analCondition" />
+		<if test="isopen != null and isopen != ''">and a.isopen = #{isopen}</if>
+	</select>
+	
+	<select id="selectEvalClsCheckedTotal" resultType="int" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalClsCheckedTotal */
+		SELECT count(*) 
+		FROM eval_cls a
+		WHERE a.datasetno = #{datasetno}
+			AND a.checked = 1
+		<include refid="analCondition" />
+		<if test="isopen != null and isopen != ''">and a.isopen = #{isopen}</if>
+	</select>
+	
+	<select id="selectEvalClsList" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalClsList */
+		SELECT a.* FROM (
+			SELECT a.*, a.no as edsno
+			FROM eval_cls a
+			WHERE a.datasetno = #{datasetno}
+			<if test="checked != null and checked != ''">and a.checked = #{checked}</if>
+			<include refid="analCondition" />
+			<if test="isopen != null and isopen != ''">and a.isopen = #{isopen}</if>
+		) a
+		<include refid="labelListOrderBy" />
+	</select>
+	
+	<select id="selectEvalClsList2" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalClsList2 */
+		SELECT 
+			a.no, a.datasetno, a.name, a.isopen
+		FROM eval_cls a
+		WHERE a.datasetno = #{datasetno}
+		ORDER BY a.no
+	</select>
+	
+	<select id="selectAnalOpenTotal" resultType="int" parameterType="hashmap">
+	/* EvalBigMapper.selectAnalOpenTotal */
+		SELECT count(*) 
+		FROM eval_cls a
+		WHERE a.datasetno = #{datasetno}
+			AND a.checked = 1
+			<include refid="analCondition" />
+			AND a.isopen = 'y'
+	</select>
+	
+	<select id="getEvalClsAvg" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.getEvalClsAvg */
+		SELECT 
+			round(avg(ap_50), 3) ap50, round(avg(ap_55), 3) ap55
+			, round(avg(ap_60), 3) ap60, round(avg(ap_65), 3) ap65
+			, round(avg(ap_70), 3) ap70, round(avg(ap_75), 3) ap75
+			, round(avg(ap_80), 3) ap80, round(avg(ap_85), 3) ap85
+			, round(avg(ap_90), 3) ap90, round(avg(ap_95), 3) ap95
+			, round(avg(mAP), 3) mAP
+		FROM eval_cls a
+		WHERE a.datasetno = #{datasetno}
+			<include refid="analCondition" />
+			<if test="isopen != null and isopen != ''">and a.isopen = #{isopen}</if>
+	</select>
+	
+	
+	<sql id="withAssignment">
+		WITH ASS AS (
+			select a.* from `assignment` a, dataset b
+			where a.no = b.assignmentno AND b.no = #{datasetno}
+		) , LAB AS (
+			SELECT a.*
+			FROM labeling a, dataset_labeling b
+			WHERE b.datasetno = #{datasetno} AND a.no = b.labelingno
+		)
+	</sql>
+	
+	<sql id="objCondition">
+		<if test="gtFlag != null and gtFlag != ''">AND a.gt_flag = #{gtFlag}</if>
+		<if test="predFlag != null and predFlag != ''">AND a.pred_flag = #{predFlag}</if>
+		<if test="cls != null and cls != ''">AND a.cls = #{cls}</if>
+		<if test="widthfrom != null and widthfrom != ''">AND a.width <![CDATA[>=]]> #{widthfrom}</if>
+		<if test="widthto != null and widthto != ''">AND a.width <![CDATA[<=]]> #{widthto}</if>
+		<if test="heightfrom != null and heightfrom != ''">AND a.height <![CDATA[>=]]> #{heightfrom}</if>
+		<if test="heightto != null and heightto != ''">AND a.height <![CDATA[<=]]> #{heightto}</if>
+		<if test="ratiofrom != null and ratiofrom != ''">AND a.ratio <![CDATA[>=]]> #{ratiofrom}</if>
+		<if test="ratioto != null and ratioto != ''">AND a.ratio <![CDATA[<=]]> #{ratioto}</if>
+		<if test="diagonalfrom != null and diagonalfrom != ''">AND a.diagonal <![CDATA[>=]]> #{diagonalfrom}</if>
+		<if test="diagonalto != null and diagonalto != ''">AND a.diagonal <![CDATA[<=]]> #{diagonalto}</if>
+		<if test="shapeType != null and shapeType != ''">AND a.shape_type = #{shapeType}</if>
+	</sql>
+	<!-- 
+	<select id="selectEvalObjListTotal" resultType="int" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalObjListTotal */
+		SELECT 
+			count(*)
+		FROM (
+			SELECT b.*
+			FROM eval_obj_ref a
+				LEFT OUTER JOIN eval_obj b
+				ON a.evalobjno = b.no
+			WHERE 1=1
+				AND a.datasetno = #{datasetno}
+		) a
+		WHERE 1=1
+		<include refid="objCondition" />
+	</select>
+	
+	<select id="selectEvalObjCheckedTotal" resultType="int" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalObjCheckedTotal */
+		SELECT 
+			count(*)
+		FROM (
+			SELECT b.*
+			FROM eval_obj_ref a
+				LEFT OUTER JOIN eval_obj b
+				ON a.evalobjno = b.no
+			WHERE 1=1
+				AND a.checked = 1
+				AND a.datasetno = #{datasetno}
+		) a
+		WHERE 1=1
+		<include refid="objCondition" />
+	</select>
+
+	<select id="selectEvalObjList" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalObjList */
+		SELECT 
+			a.*
+		FROM (
+			SELECT b.*, a.no AS edsno, a.no AS eno, a.checked AS echecked
+			FROM eval_obj_ref a
+				LEFT OUTER JOIN eval_obj b
+				ON a.evalobjno = b.no
+			WHERE 1=1
+				AND a.datasetno = #{datasetno}
+		) a
+		WHERE 1=1
+		<include refid="objCondition" />
+		<include refid="labelListOrderBy" />
+	</select>
+	-->
+	
+	
+	<select id="selectEvalObjList2" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalObjList2 */
+		SELECT 
+			/*	no, datasetno, cls, */
+			obj_id, gt_flag, pred_flag, correct, total,
+			iou, confidence, diagonal, ratio,
+			width, height, histogram, shape_type,
+			tp_50, tp_55, tp_60, tp_65, tp_70, tp_75,
+			tp_80, tp_85, tp_90, tp_95, fp_50, fp_55,
+			fp_60, fp_65, fp_70, fp_75, fp_80, fp_85,
+			fp_90, fp_95, fn_50, fn_55, fn_60, fn_65,
+			fn_70, fn_75, fn_80, fn_85, fn_90, fn_95,
+			blur_coef
+		FROM eval_obj o
+		WHERE 1=1
+			AND o.datasetno = #{datasetno}
+			AND o.cls = #{name}
+		ORDER BY obj_id, gt_flag, pred_flag
+	</select>
+	
+	<update id="evaluationOpenSet" parameterType="hashmap">
+	/* EvalBigMapper.evaluationOpenSet */
+		UPDATE eval_cls SET isopen = #{isopen}
+		WHERE no IN (0
+			<foreach collection="ecnos" item="item" separator=""> ,#{item} </foreach>)
+	</update>
+	
+	<select id="selectEvalObjListTotal2" resultType="int" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalObjListTotal2 
+		<include refid="withAssignment" />
+		SELECT 
+			count(*)
+		FROM eval_obj a, ASS, LAB
+		WHERE 1=1
+			AND a.assignmentno = ASS.no
+			AND a.file_name = LAB.imagefile
+			AND a.shape_type is not null
+		*/
+	</select>
+	
+	<select id="selectEvalObjShapes" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalObjShapes 
+		<include refid="withAssignment" />
+		SELECT 
+			a.shape_type, count(*) as shapeCount 
+		FROM eval_obj a, ASS, LAB
+		WHERE 1=1
+			AND a.assignmentno = ASS.no
+			AND a.shape_type is not null
+		GROUP BY a.shape_type
+	*/
+	</select>
+	
+	<update id="evaluationOpenSetAll" parameterType="hashmap">
+	/* EvalBigMapper.evaluationOpenSetAll */
+		UPDATE eval_cls a 
+		SET <if test='reverse == null or reverse == ""'>a.isopen = 'y'</if>
+			<if test='reverse != null and reverse != ""'>a.isopen = 'n'</if>
+		WHERE a.datasetno = #{datasetno}
+			<include refid="analCondition" />
+	</update>
+	
+	
+	<select id="selectEvalClsObjCountList" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalClsObjCountList */
+		SELECT 
+			a.cls, count(a.cls) AS cnt 
+		FROM eval_obj a
+		WHERE a.datasetno = #{datasetno}
+			<if test='gtFlag != null and gtFlag != ""'>and a.gt_flag = #{gtFlag} </if>
+		GROUP BY a.cls
+	</select>
+
+	<update id="insertEvalBigFile" parameterType="hashmap">
+	/* EvalBigMapper.insertEvalBigFile */
+		INSERT INTO eval_file
+			(assignmentno, datasetno, filename, cls, class_count, obj_count
+			, asc_dev, `asc`
+			, fnc, fpc, aiou)
+		WITH CLS AS (
+			SELECT 
+				file_name, cls, iou, POW(1-iou, 2) AS ascd
+				, fp_50, fn_50
+			FROM eval_obj 
+			WHERE datasetno = #{datasetno}
+			AND pred_flag = 1
+		)
+		SELECT #{assignmentno}, #{datasetno}
+			, file_name
+			, GROUP_CONCAT(DISTINCT cls ORDER BY cls SEPARATOR ',') AS clss
+			, COUNT(DISTINCT cls) AS cls_count
+			, COUNT(cls) AS obj_count
+			, SQRT(SUM(ascd)) ascdev 
+			, SQRT(SUM(ascd)) / COUNT(cls) as ascc
+			, IFNULL(SUM(fn_50), 0)
+			, IFNULL(SUM(fp_50), 0)
+			, IFNULL(AVG(iou), 0)
+		FROM CLS 
+		GROUP BY CLS.file_name
+		ORDER BY CLS.file_name
+	</update>
+	
+	<select id="selectEvalFileListTotal" resultType="int" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalFileListTotal */
+		SELECT count(*) FROM (
+			SELECT 
+				b.*
+			FROM eval_file_ref a
+				LEFT OUTER JOIN eval_file b ON a.evalfileno = b.no
+			WHERE a.datasetno = #{datasetno}
+		) a
+		WHERE 1=1
+		<if test="ascfrom != null and ascfrom != ''">and a.asc <![CDATA[>=]]> #{ascfrom}</if>
+		<if test="ascto != null and ascto != ''">and a.asc <![CDATA[<=]]> #{ascto}</if>
+	</select>
+
+	<select id="selectEvalFileCheckedTotal" resultType="int" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalFileCheckedTotal */
+		SELECT 
+			count(*)
+		FROM eval_file_ref b
+			INNER JOIN eval_file a ON b.evalfileno = a.no
+		WHERE b.datasetno = #{datasetno}
+			AND b.checked = 1
+			<if test="ascfrom != null and ascfrom != ''">and a.asc <![CDATA[>=]]> #{ascfrom}</if>
+			<if test="ascto != null and ascto != ''">and a.asc <![CDATA[<=]]> #{ascto}</if>
+	</select>
+	
+	<select id="selectEvalFileList" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.selectEvalFileList */
+		SELECT a.* FROM (
+			SELECT 
+				a.no AS edsno, a.checked AS edschecked, b.*
+			FROM eval_file_ref a
+				LEFT OUTER JOIN v_labeling_evalfile b 
+					ON a.evalfileno = b.evalno
+			WHERE a.datasetno = #{datasetno}
+				AND a.datasetno = b.edatasetno 
+				<if test="checked != null and checked != ''">and a.checked = #{checked}</if>
+		) a
+		WHERE 1=1
+		<if test="ascfrom != null and ascfrom != ''">and a.asc <![CDATA[>=]]> #{ascfrom}</if>
+		<if test="ascto != null and ascto != ''">and a.asc <![CDATA[<=]]> #{ascto}</if>
+		<include refid="labelListOrderBy" />
+	</select>
+	
+	<select id="evalSummary" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.evalSummary */
+		SELECT 
+			AVG(b.aiou) aiou, AVG(b.asc) `asc`
+			, SUM(CASE WHEN b.fnc > 0 THEN 1 ELSE 0 END) f_fnc, SUM(b.fnc) o_fnc
+			, SUM(CASE WHEN b.fpc > 0 THEN 1 ELSE 0 END) f_fpc, SUM(b.fpc) o_fpc
+		FROM eval_file_ref a
+			INNER JOIN eval_file b 
+				ON a.evalfileno = b.no
+		WHERE a.datasetno = #{datasetno}
+	</select>
+	
+	<update id="updateEvalClsObjCount" parameterType="hashmap">
+	/* EvalBigMapper.updateEvalClsObjCount */
+		UPDATE eval_cls a 
+		SET a.obj_count = (
+			SELECT count(*) FROM eval_obj b
+			WHERE a.assignmentno = b.assignmentno 
+				AND a.datasetno = b.datasetno
+				AND b.assignmentno = #{assignmentno}
+				AND a.name = b.cls
+		)
+		WHERE a.assignmentno = #{assignmentno}
+	</update>
+	
+	<update id="updateEvalClsObjCount2" parameterType="hashmap">
+	/* EvalBigMapper.updateEvalClsObjCount2 */
+		UPDATE eval_cls a,
+			(select o.cls, count(*) cnt
+			from eval_file_ref r
+				inner join eval_file f on f.no = r.evalfileno
+				left outer join eval_obj o
+					on o.file_name = f.filename
+			where r.datasetno = #{datasetno}
+			group by cls
+		) b
+		SET a.obj_count = b.cnt
+		WHERE a.datasetno = #{datasetno}
+			AND a.name = b.cls
+	</update>
+	
+	<update id="evaluationClsReset" parameterType="hashmap">
+	/* EvalBigMapper.evaluationClsReset */
+		UPDATE eval_cls 
+		SET map = null, ap_50 = null, precision_50 = null, recall_50 = null, f1_50 = null, recall_precision_curve_50 = null, interpolated_recall_precision_curve_50 = null
+			, ap_55 = null, precision_55 = null, recall_55 = null, f1_55 = null, recall_precision_curve_55 = null, interpolated_recall_precision_curve_55 = null
+			, ap_60 = null, precision_60 = null, recall_60 = null, f1_60 = null, recall_precision_curve_60 = null, interpolated_recall_precision_curve_60 = null
+			, ap_65 = null, precision_65 = null, recall_65 = null, f1_65 = null, recall_precision_curve_65 = null, interpolated_recall_precision_curve_65 = null
+			, ap_70 = null, precision_70 = null, recall_70 = null, f1_70 = null, recall_precision_curve_70 = null, interpolated_recall_precision_curve_70 = null
+			, ap_75 = null, precision_75 = null, recall_75 = null, f1_75 = null, recall_precision_curve_75 = null, interpolated_recall_precision_curve_75 = null
+			, ap_80 = null, precision_80 = null, recall_80 = null, f1_80 = null, recall_precision_curve_80 = null, interpolated_recall_precision_curve_80 = null
+			, ap_85 = null, precision_85 = null, recall_85 = null, f1_85 = null, recall_precision_curve_85 = null, interpolated_recall_precision_curve_85 = null
+			, ap_90 = null, precision_90 = null, recall_90 = null, f1_90 = null, recall_precision_curve_90 = null, interpolated_recall_precision_curve_90 = null
+			, ap_95 = null, precision_95 = null, recall_95 = null, f1_95 = null, recall_precision_curve_95 = null, interpolated_recall_precision_curve_95  = null
+		WHERE datasetno = #{datasetno}
+	</update>
+	
+	<update id="copyEvalFileRef" parameterType="hashmap">
+	/* EvalBigMapper.copyEvalFileRef */
+		INSERT INTO eval_file_ref
+		(assignmentno, datasetno, odatasetno, evalfileno)
+		SELECT assignmentno, #{datasetno}, datasetno, no
+		FROM eval_file
+		WHERE datasetno = #{odatasetno}
+	</update>
+	
+	<update id="copyEvalCls" parameterType="hashmap">
+	/* EvalBigMapper.copyEvalCls */
+		INSERT INTO eval_cls
+		(assignmentno, datasetno, name, `map`, obj_count
+			, ap_50, precision_50, recall_50, f1_50, recall_precision_curve_50, interpolated_recall_precision_curve_50
+			, ap_55, precision_55, recall_55, f1_55, recall_precision_curve_55, interpolated_recall_precision_curve_55
+			, ap_60, precision_60, recall_60, f1_60, recall_precision_curve_60, interpolated_recall_precision_curve_60
+			, ap_65, precision_65, recall_65, f1_65, recall_precision_curve_65, interpolated_recall_precision_curve_65
+			, ap_70, precision_70, recall_70, f1_70, recall_precision_curve_70, interpolated_recall_precision_curve_70
+			, ap_75, precision_75, recall_75, f1_75, recall_precision_curve_75, interpolated_recall_precision_curve_75
+			, ap_80, precision_80, recall_80, f1_80, recall_precision_curve_80, interpolated_recall_precision_curve_80
+			, ap_85, precision_85, recall_85, f1_85, recall_precision_curve_85, interpolated_recall_precision_curve_85
+			, ap_90, precision_90, recall_90, f1_90, recall_precision_curve_90, interpolated_recall_precision_curve_90
+			, ap_95, precision_95, recall_95, f1_95, recall_precision_curve_95, interpolated_recall_precision_curve_95)
+		SELECT assignmentno, #{datasetno}, name, `map`, obj_count
+			, ap_50, precision_50, recall_50, f1_50, recall_precision_curve_50, interpolated_recall_precision_curve_50
+			, ap_55, precision_55, recall_55, f1_55, recall_precision_curve_55, interpolated_recall_precision_curve_55
+			, ap_60, precision_60, recall_60, f1_60, recall_precision_curve_60, interpolated_recall_precision_curve_60
+			, ap_65, precision_65, recall_65, f1_65, recall_precision_curve_65, interpolated_recall_precision_curve_65
+			, ap_70, precision_70, recall_70, f1_70, recall_precision_curve_70, interpolated_recall_precision_curve_70
+			, ap_75, precision_75, recall_75, f1_75, recall_precision_curve_75, interpolated_recall_precision_curve_75
+			, ap_80, precision_80, recall_80, f1_80, recall_precision_curve_80, interpolated_recall_precision_curve_80
+			, ap_85, precision_85, recall_85, f1_85, recall_precision_curve_85, interpolated_recall_precision_curve_85
+			, ap_90, precision_90, recall_90, f1_90, recall_precision_curve_90, interpolated_recall_precision_curve_90
+			, ap_95, precision_95, recall_95, f1_95, recall_precision_curve_95, interpolated_recall_precision_curve_95
+		FROM eval_cls
+		WHERE datasetno = #{odatasetno}
+	</update>
+	
+	<update id="copyEvalObjRef" parameterType="hashmap">
+	/* EvalBigMapper.copyEvalObjRef */
+		INSERT INTO
+		eval_obj_pred${predFlag}_ref
+		(assignmentno, datasetno, odatasetno, evalobjno)
+		SELECT assignmentno, #{datasetno}, #{odatasetno}, no
+		FROM eval_obj
+		WHERE datasetno = #{odatasetno}
+			AND pred_flag = #{predFlag}
+	</update>
+	
+	
+	<update id="deleteEvalBigFileRef" parameterType="hashmap">
+	/* EvalBigMapper.deleteEvalBigFileRef */
+		DELETE FROM eval_file_ref
+		WHERE assignmentno = #{assignmentno}
+	</update>
+	
+	<update id="deleteEvalBigFile" parameterType="hashmap">
+	/* EvalBigMapper.deleteEvalBigFile */
+		DELETE FROM eval_file 
+		WHERE assignmentno = #{assignmentno}
+	</update>
+
+	<update id="evaluationClsClear" parameterType="hashmap">
+	/* EvalBigMapper.evaluationClsClear */
+		DELETE FROM eval_cls
+		WHERE assignmentno = #{assignmentno}
+	</update>
+	
+	<update id="evaluationClsDsClear" parameterType="hashmap">
+	/* EvalBigMapper.evaluationClsDsClear */
+		DELETE FROM eval_cls
+		WHERE datasetno = #{datasetno}
+	</update>
+	
+	<update id="datasetLabelingDel" parameterType="hashmap">
+	/* EvalBigMapper.datasetLabelingDel */
+		DELETE FROM eval_file_ref
+		WHERE datasetno = #{datasetno}
+		AND checked = 1
+	</update>
+	
+	
+	<select id="evalClassNames" resultType="egovMap" parameterType="hashmap">
+	/* EvalBigMapper.evalClassNames */
+		SELECT 
+			a.name, count(*) cnt
+		FROM eval_cls a
+		WHERE a.datasetno = #{datasetno}
+		GROUP BY a.name
+	</select>
+
+</mapper>

@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.AssignmentMapper">
+	
+	<select id="selectAssignmentTotal" resultType="int" parameterType="hashmap">
+	/* AssignmentMapper.selectAssignmentTotal */
+		SELECT count(*) FROM assignment t
+		WHERE 1=1
+			<if test="userno != null and userno != '0'">AND t.orgcode = (SELECT orgcode FROM userorg WHERE userno = #{userno})</if>
+			<if test='orgcode != null and orgcode != "0"'>AND t.orgcode = #{orgcode}</if>
+			<if test='delyn != null and delyn != ""'>AND t.delyn = #{delyn}</if>
+			<if test='delyn == null or delyn == ""'>AND t.delyn = 'N'</if>
+	</select>
+	
+	<select id="selectAssignmentList" resultType="egovMap" parameterType="hashmap">
+	/* AssignmentMapper.selectAssignmentList */
+		SELECT t.*
+			, (SELECT count(*) FROM labeling a WHERE a.assignmentno = t.no)
+				as labelingTotal
+			, (SELECT count(*) FROM labeling a WHERE a.assignmentno = t.no and a.mgtflag = '1')
+				as mgtCount
+			, (SELECT count(*) FROM assignment_hgt b WHERE b.assignmentno = t.no)
+				as hgtCount
+			, d.no AS datasetno
+			, r.no AS reportno
+		FROM assignment t
+		LEFT OUTER JOIN dataset d
+			ON d.assignmentno = t.no AND d.delyn = 'N' AND d.settype = 1
+		LEFT OUTER JOIN report r
+			ON r.assignmentno = t.no AND r.delyn = 'N' AND r.datasetno = d.no
+		WHERE 1=1
+			<if test="userno != null and userno != '0'">AND t.orgcode = (SELECT orgcode FROM userorg WHERE userno = #{userno})</if>
+			<if test='orgcode != null and orgcode != "0"'>AND t.orgcode = #{orgcode}</if>
+			<if test='delyn != null and delyn != ""'>AND t.delyn = #{delyn}</if>
+			<if test='delyn == null or delyn == ""'>AND t.delyn = 'N'</if>
+		ORDER BY t.no
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+	
+	<select id="getAssignmentDetail" resultType="egovMap" parameterType="hashmap">
+	/* AssignmentMapper.getAssignmentDetail */
+		SELECT t.*
+			, (SELECT count(*) FROM labeling a WHERE a.assignmentno = t.no)
+				as labelingTotal
+			, (SELECT count(*) FROM labeling a WHERE a.assignmentno = t.no and a.mgtflag = '1')
+				as mgtTotalCount
+			, (SELECT count(*) FROM assignment_hgt b WHERE b.assignmentno = t.no)
+				as hgtCount
+			, d.no AS datasetno
+			, r.no AS reportno
+			, MAX(e.creationtime) AS dt
+		FROM assignment t
+		LEFT OUTER JOIN dataset d
+			ON d.assignmentno = t.no AND d.delyn = 'N' AND d.settype = 1
+		LEFT OUTER JOIN report r
+			ON r.assignmentno = t.no AND r.delyn = 'N' AND r.datasetno = d.no
+		LEFT OUTER JOIN eval_big e
+			ON e.assignmentno = t.no
+		WHERE t.no = #{assignmentno}
+	</select>
+	
+	<update id="assignmentDel" parameterType="string">
+	/* AssignmentMapper.assignmentDel */
+		UPDATE assignment set
+			updatetime = current_timestamp()
+			, delyn = 'Y'
+		WHERE no = #{tno}
+	</update>
+	
+	<insert id="assignmentAdd" parameterType="hashmap" useGeneratedKeys="true" keyProperty="no">
+	/* AssignmentMapper.assignmentAdd */
+		INSERT INTO assignment
+			(name, note, orgcode, userno, location
+			, `usage`, creationtime, updatetime , delyn)
+		VALUES(#{name}, #{note}, #{orgcode}, #{userno}, #{location}
+			, #{usage}, current_timestamp(), current_timestamp() , 'N')
+		<selectKey keyProperty="no" resultType="Integer" order="AFTER">
+			SELECT LAST_INSERT_ID() 
+		</selectKey>
+	</insert>
+	
+	<insert id="assignmentUpdate" parameterType="hashmap">
+	/* AssignmentMapper.assignmentUpdate */
+		UPDATE assignment SET
+			updatetime = current_timestamp()
+			<if test='name != null and name != ""'>, name = #{name}</if>
+			<if test='note != null and note != ""'>, note = #{note}</if>
+			<if test='mgtyn != null and mgtyn != ""'>, mgtyn = #{mgtyn}</if>
+			<if test='modelname != null and modelname != ""'>, modelname = #{modelname}</if>
+			<if test='modelyn != null and modelyn != ""'>, modelyn = #{modelyn}</if>
+			<if test='envinfo != null'>, envinfo = #{envinfo}</if>
+			<if test='mgtcount != null'>, mgtcount = #{mgtcount}</if>
+			<if test='mgtcount == null'>, mgtcount = (
+				SELECT COUNT(*) FROM labeling a
+				WHERE a.assignmentno = #{no}
+					AND a.mgtflag = '1'
+			)</if>
+			<if test='mgttime != null'>, mgttime = date_format(#{mgttime}, '%Y%m%d%H%i%s')</if>
+		WHERE no = #{no}
+	</insert>
+	
+	<update id="updateMgtCount" parameterType="hashmap">
+	/* AssignmentMapper.updateMgtCount */
+		UPDATE assignment set
+			mgtcount = (
+				SELECT COUNT(*) FROM labeling a
+				WHERE a.assignmentno = #{assignmentno}
+					AND a.mgtflag = '1'
+			)
+			, updatetime = current_timestamp()
+		WHERE no = #{assignmentno}
+	</update>
+	
+	<update id="updateAssignmentUsageDate" parameterType="hashmap">
+	/* AssignmentMapper.updateAssignmentUsageDate */
+		UPDATE assignment set
+			updatetime = current_timestamp()
+			<if test='usage != null'>, `usage` = #{usage}</if>
+		WHERE no = #{assignmentno}
+	</update>
+	
+	<insert id="insertUploadZip" parameterType="hashmap" useGeneratedKeys="true" keyProperty="no">
+	/* AssignmentMapper.insertUploadZip 
+	*/
+		INSERT INTO uploadzip
+			(assignmentno, orgfilename, savefilename, uploadpath, uploaduserno)
+		VALUES (#{assignmentno}, #{orgfilename}, #{savefilename}, #{uploadpath}, #{userno})
+		<selectKey keyProperty="no" resultType="Integer" order="AFTER">
+			SELECT LAST_INSERT_ID() 
+		</selectKey>
+	</insert>
+	
+	<insert id="insertUploadFileBulk" parameterType="hashmap">
+	/* AssignmentMapper.insertUploadFileBulk
+	*/
+		INSERT INTO labeling
+			(assignmentno, location, imagedir, imagefile, imagesize, imagewidth
+			, imageheight, imageratio, imagevalidity , imagedate, imageupdate
+			, labelingdir, labelingfile, labelingsize, labelingvalidity , labelingdate, labelingupdate)
+		VALUES <foreach collection="list" item="item" separator=",">
+			(#{assignmentno}, #{location}, #{item.imagePath}, #{item.imageName}, #{item.imageSize}, #{item.imageWidth}
+			, #{item.imageHeight}, #{item.imageRatio}, #{item.imageValidity} , str_to_date(#{item.imageDate}, '%Y%m%d %H%i%s'), str_to_date(#{item.imageUpdate}, '%Y%m%d %H%i%s')
+			, #{item.jsonPath}, #{item.jsonName}, #{item.jsonSize}, #{item.jsonValidity}
+			, str_to_date(#{item.jsonDate}, '%Y%m%d %H%i%s'), str_to_date(#{item.jsonUpdate}, '%Y%m%d %H%i%s')) </foreach>
+	</insert>
+	
+	<insert id="insertUploadFileBulkDetail" parameterType="hashmap">
+	/* AssignmentMapper.insertUploadFileBulkDetail
+	*/
+		INSERT INTO labeling_detail
+			(assignmentno, labelingdir, labelingfile, classname, shapetype, objectcount)
+		VALUES <foreach collection="listDetail" item="item" separator=",">
+			(#{assignmentno}, #{item.labelingDir}, #{item.labelingFile}, #{item.clsName}, #{item.shapeType}, #{item.cnt}) </foreach>
+	</insert>
+	
+	<update id="evalReqUpdate" parameterType="hashmap">
+	/* AssignmentMapper.evalReqUpdate */
+		UPDATE assignment set
+			updatetime = current_timestamp()
+			<if test='evalreqdate != null and evalreqdate !=""'>, evalreqdate = current_timestamp()</if>
+			<if test='evalresdate != null and evalresdate !=""'>, evalresdate = evalreqdate</if>
+		WHERE no = #{assignmentno}
+	</update>
+	
+	<update id="locationUpdate" parameterType="hashmap">
+	/* AssignmentMapper.locationUpdate */
+		UPDATE assignment set
+			location = #{location}
+		WHERE no = #{assignmentno}
+	</update>
+	
+	
+</mapper>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0/EN"
+"http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+	<settings>
+		<!-- query 결과 컬럼의 값이 null일 경우 result에 null로 setting할지 여무 -->
+		<setting name="callSettersOnNulls" value="true" />
+		<!-- null parameter 허용 -->
+		<setting name="jdbcTypeForNull" value="NULL" />
+	</settings>
+
+	<typeAliases>
+		<typeAlias alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap" />
+		<typeAlias alias="export" type="com.postinforg.annoscoreapi.model.Export" />
+	</typeAliases>
+
+</configuration>

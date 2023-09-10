@@ -1,0 +1,370 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.DatasetMapper">
+	
+	<insert id="datasetAdd" parameterType="hashmap" useGeneratedKeys="true" keyProperty="no">
+	/* DatasetMapper.datasetAdd */
+		INSERT INTO dataset
+			(name, note, assignmentno, settype, delyn, eval_aptype, modelname)
+		SELECT #{name}, #{note}, #{assignmentno}, 1-count(d.no), 'N', 55
+			, (SELECT t.modelname FROM assignment t WHERE t.no = #{assignmentno})
+		FROM dataset d
+		WHERE d.assignmentno = #{assignmentno} AND settype=1
+		<selectKey keyProperty="no" resultType="Integer" order="AFTER">
+			SELECT LAST_INSERT_ID() 
+		</selectKey>
+	</insert>
+
+	<update id="datasetUpdate" parameterType="hashmap">
+	/* DatasetMapper.datasetUpdate */
+		UPDATE dataset set
+			name = #{name}
+			, note = #{note}
+		WHERE no =  #{datasetno}
+	</update>
+
+	<update id="datasetDel" parameterType="hashmap" >
+	/* DatasetMapper.datasetDel */
+		UPDATE dataset set delyn = 'Y'
+		WHERE no = #{datasetno}
+	</update>
+			
+		
+	<insert id="copyLabelingLink" parameterType="hashmap" >
+	/* DatasetMapper.copyLabelingLink */
+		INSERT INTO dataset_labeling (datasetno, labelingno)
+		SELECT #{datasetno}, no 
+		FROM labeling 
+		WHERE assignmentno = #{assignmentno}
+	</insert>
+	
+	<select id="selectDatasetTotal" resultType="int" parameterType="hashmap">
+	/* DatasetMapper.selectDatasetTotal */
+		SELECT count(*)
+		FROM dataset d
+		WHERE d.assignmentno = #{assignmentno}
+			<if test='delyn != null and delyn != ""'>AND d.delyn = #{delyn}</if>
+			<if test='delyn == null or delyn == ""'>AND d.delyn = 'N'</if>
+	</select>
+	
+	<select id="selectDatasetList" resultType="egovMap" parameterType="hashmap">
+	/* DatasetMapper.selectDatasetList */
+		WITH CNT AS (
+			SELECT COUNT(da.datasetno) AS maxCount
+			FROM dataset d
+			        LEFT OUTER JOIN dataset_labeling da ON d.no = da.datasetno
+			WHERE d.assignmentno = #{assignmentno}
+			         AND d.settype = 1
+			GROUP BY d.no
+		)
+		SELECT d.*
+			, COUNT(da.datasetno) AS labelingCount
+			, CNT.maxCount as totalLabelingCount
+			, r.no AS reportno
+		FROM 
+			CNT, dataset d
+			LEFT OUTER JOIN dataset_labeling da ON d.no = da.datasetno
+			LEFT OUTER JOIN report r ON d.no = r.datasetno
+		WHERE d.assignmentno = #{assignmentno}
+			<if test='delyn != null and delyn != ""'>AND d.delyn = #{delyn}</if>
+			<if test='delyn == null or delyn == ""'>AND d.delyn = 'N'</if>
+		GROUP BY d.no
+		ORDER BY d.no DESC
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+	
+	<select id="selectDatasetDetail" resultType="egovMap" parameterType="hashmap">
+	/* DatasetMapper.selectDatasetDetail */
+		SELECT d.*
+		FROM dataset d
+		WHERE d.no = #{datasetno}
+	</select>
+	
+	<select id="selectDataset" resultType="egovMap" parameterType="hashmap">
+	/* DatasetMapper.selectDataset */
+		SELECT d.*
+			, COUNT(da.datasetno) AS labelingCount
+			, (SELECT COUNT(*) FROM dataset_labeling WHERE datasetno 
+					= (SELECT no FROM dataset WHERE settype = '1' and assignmentno = d.assignmentno)
+				) AS totalLabelingCount
+			, COUNT(da.labelingno) AS checkedCount
+			, (SELECT MAX(r.no) FROM report r WHERE r.datasetno = d.no) rno
+		FROM dataset d 
+			LEFT OUTER JOIN dataset_labeling da ON d.no = da.datasetno
+			LEFT OUTER JOIN assignment p ON p.no = d.assignmentno
+		WHERE d.no = #{datasetno}
+	</select>
+	
+	<select id="selectDatasetLabelingDetail" resultType="egovMap" parameterType="hashmap">
+	/* DatasetMapper.selectDatasetLabelingDetail */
+		SELECT  a.labelingno
+			, CASE WHEN b.ano IS NULL THEN 0 ELSE 1 END AS isChecked
+			, c.imagedir, c.imagefile
+			, c.labelingdir, c.labelingfile
+			, c.mgtdir, c.mgtfile, c.mgtflag
+			, c.creationtime
+			, c.location, c.checked
+			, ds.assignmentno
+		FROM dataset_labeling a
+			LEFT OUTER JOIN (
+				SELECT labelingno AS ano 
+				FROM dataset_labeling
+				WHERE datasetno = #{datasetno}
+			) b ON a.labelingno = b.ano
+			LEFT OUTER JOIN labeling c
+				ON a.labelingno = c.no
+			LEFT OUTER JOIN dataset ds
+				ON ds.no = a.datasetno
+		WHERE 1=1
+			and a.datasetno = #{datasetno}
+			and a.labelingno = #{labelingno}
+	</select>
+	
+	
+	<select id="selectDatasetLabelingTotal" resultType="int" parameterType="hashmap">
+	/* DatasetMapper.selectDatasetLabelingTotal */
+		SELECT count(*)
+		FROM (SELECT d.*
+			FROM dataset_labeling d
+				<if test='ischecked != null and ischecked == "0"'>
+				LEFT JOIN (SELECT labelingno FROM dataset_labeling 
+					WHERE datasetno = #{datasetno}) b 
+					USING (labelingno)
+				</if>
+			WHERE 1=1 <choose>
+				<when test='ischecked != null and ischecked == "1"'>AND d.datasetno = #{datasetno}</when>
+				<otherwise>
+				<if test='ischecked != null and ischecked == "0"'>and b.labelingno is null</if>
+				and d.datasetno = (
+				SELECT a.no FROM dataset a
+					INNER JOIN dataset b ON b.no = #{datasetno}
+				WHERE a.settype = '1' AND a.assignmentno = b.assignmentno
+					AND a.delyn = 'N' )
+			</otherwise></choose>
+		) a, labeling c
+		WHERE a.labelingno = c.no AND c.mgtflag = 1
+	</select>
+	
+	<select id="selectDatasetLabelingList" resultType="egovMap" parameterType="hashmap">
+	/* DatasetMapper.selectDatasetLabelingList */
+		SELECT  a.labelingno
+			, CASE WHEN b.ano IS NULL THEN 0 ELSE 1 END AS isChecked
+			, c.imagedir, c.imagefile
+			, c.labelingdir, c.labelingfile
+			, c.mgtdir, c.mgtfile, c.mgtflag
+			, c.creationtime
+			, c.location, c.checked
+			, ds.assignmentno
+		FROM labeling c, dataset_labeling a
+			LEFT OUTER JOIN (
+			<choose>
+			<when test='ischecked != null and ischecked == "1"'>SELECT 1 as ano
+			) b ON b.ano = 1
+			</when>
+			<otherwise>
+				SELECT labelingno AS ano 
+				FROM dataset_labeling
+				WHERE datasetno = #{datasetno}
+			) b ON a.labelingno = b.ano
+			</otherwise></choose>
+			LEFT OUTER JOIN dataset ds
+				ON ds.no = a.datasetno
+		WHERE 1=1
+			and a.labelingno = c.no
+			and c.mgtflag = 1
+			<choose>
+			<when test='ischecked != null and ischecked == "1"'>AND a.datasetno = #{datasetno}</when>
+			<otherwise>
+			and a.datasetno = #{datasetno}
+			</otherwise></choose>
+		ORDER BY a.labelingno
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+	
+	<select id="selectDatasetLabelingList0" resultType="egovMap" parameterType="hashmap">
+	/* DatasetMapper.selectDatasetLabelingList0 */
+		SELECT  a.labelingno
+			, 0 AS isChecked
+			, c.imagedir, c.imagefile
+			, c.labelingdir, c.labelingfile
+			, c.mgtdir, c.mgtfile, c.mgtflag
+			, c.creationtime
+			, c.location, c.checked
+			, ds.assignmentno
+		FROM labeling c, dataset_labeling a
+			LEFT JOIN (SELECT labelingno FROM dataset_labeling 
+				WHERE datasetno = #{datasetno}) b 
+				USING (labelingno)
+			LEFT OUTER JOIN dataset ds
+				ON ds.no = a.datasetno
+		WHERE 1=1
+			and a.labelingno = c.no
+			and c.mgtflag = 1
+			and a.datasetno = #{datasetno}
+			and b.labelingno is null
+		ORDER BY a.labelingno
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+	
+	
+	<insert id="datasetLabelingAdd" parameterType="hashmap" >
+	/* DatasetMapper.datasetLabelingAdd */
+		INSERT INTO dataset_labeling (datasetno, labelingno)
+		SELECT #{datasetno}, a.no
+		FROM labeling a 
+		WHERE a.mgtflag = 1 AND a.no in (null
+		<foreach collection="anos" item="item">, #{item} </foreach>)
+	</insert>
+	
+	<update id="datasetLabelingDel" parameterType="hashmap" >
+	/* DatasetMapper.datasetLabelingDel */
+		DELETE FROM dataset_labeling
+		WHERE datasetno = #{datasetno}
+			AND checked = 1
+	</update>
+	
+	<update id="datasetEval" parameterType="hashmap" >
+	/* DatasetMapper.datasetEval */
+		UPDATE dataset
+		SET status = #{status}
+		<if test='status != null and status == "9"'>, evaltime = CURRENT_TIMESTAMP</if>
+		WHERE no = #{datasetno}
+	</update>
+	
+	<update id="datasetLabelingDelAll" parameterType="hashmap" >
+	/* DatasetMapper.datasetLabelingDelAll */
+		DELETE FROM dataset_labeling
+		WHERE datasetno = #{datasetno}
+	</update>
+
+	<update id="datasetLabelingAddAll" parameterType="hashmap" >
+	/* DatasetMapper.datasetLabelingAddAll */
+		INSERT INTO dataset_labeling (datasetno, labelingno)
+		SELECT #{datasetno}, a.no
+		FROM labeling a 
+		WHERE a.mgtflag = 1 AND a.assignmentno = #{assignmentno}
+	</update>
+	
+	<update id="datasetLabelingAddFilter" parameterType="hashmap" >
+	/* DatasetMapper.datasetLabelingAddFilter */
+		INSERT INTO dataset_labeling (datasetno, labelingno)
+		SELECT #{datasetno}, a.no
+		FROM labeling a 
+		WHERE a.mgtflag = 1 AND a.assignmentno = #{assignmentno}
+			AND a.no NOT IN (SELECT labelingno FROM dataset_labeling 
+				WHERE datasetno = #{datasetno})
+		<if test='orderColumn != null and orderColumn != ""'>
+		ORDER BY a.${orderColumn} ${orderBy}
+		</if> <if test='orderColumn == null or orderColumn == ""'>
+		ORDER BY a.no</if>
+		LIMIT #{limit}
+	</update>
+	
+	<select id="datasetLabelingCount" resultType="egovMap" parameterType="hashmap">
+	/* DatasetMapper.datasetLabelingCount */
+		SELECT 
+			(SELECT count(*) FROM labeling n, dataset_labeling d
+				WHERE d.datasetno = #{datasetno} AND d.labelingno = n.no AND n.mgtflag = 1) 
+			AS orgCount
+			, (SELECT COUNT(*) FROM labeling n, dataset_labeling a
+				WHERE a.datasetno = (
+					SELECT no FROM dataset WHERE assignmentno = (select assignmentno
+						FROM dataset WHERE no = #{datasetno}
+						AND settype = '1' ) 
+				)
+				AND a.labelingno = n.no
+				AND n.mgtflag = 1)
+			AS defCount
+	</select>
+	
+	<update id="datasetLabelingAddRandom" parameterType="hashmap">
+	/* DatasetMapper.datasetLabelingAddRandom */
+		INSERT INTO dataset_labeling (datasetno, labelingno)
+		SELECT #{datasetno}, a.no 
+		FROM labeling a
+		WHERE a.assignmentno = #{assignmentno}
+			AND a.mgtflag = 1
+			AND a.no NOT IN (SELECT labelingno FROM dataset_labeling 
+				WHERE datasetno = #{datasetno})
+		ORDER BY rand() limit #{limit}
+	</update>
+	
+	<update id="copyLabelingLinkNew" parameterType="hashmap">
+	/* DatasetMapper.copyLabelingLinkNew */
+		INSERT INTO dataset_labeling (datasetno, labelingno)
+		SELECT #{datasetno}, a.no 
+		FROM labeling a
+		WHERE a.assignmentno = #{assignmentno}
+			AND a.no NOT IN (SELECT labelingno FROM dataset_labeling 
+				WHERE datasetno = #{datasetno})
+	</update>
+	
+	<select id="datasetReportList" resultType="egovMap" parameterType="hashmap">
+	/* DatasetMapper.datasetReportList */
+		SELECT d.*, r.no AS reportno
+		FROM 
+			dataset d
+			LEFT OUTER JOIN report r ON r.datasetno = d.no
+		WHERE d.assignmentno = #{assignmentno}
+			<if test='delyn != null and delyn != ""'>AND d.delyn = #{delyn}</if>
+			<if test='delyn == null or delyn == ""'>AND d.delyn = 'N'</if>
+		ORDER BY d.assignmentno, d.no
+	</select>
+	
+	<update id="datasetLabelingClear" parameterType="hashmap">
+	/* DatasetMapper.datasetLabelingClear */
+		DELETE FROM dataset_labeling 
+		WHERE datasetno IN (
+			SELECT no FROM dataset 
+			WHERE assignmentno = #{assignmentno}
+			AND no != #{datasetno}
+			AND settype != 1
+		)
+	</update>
+	
+	<update id="deleteDataset" parameterType="hashmap">
+	/* DatasetMapper.deleteDataset */
+		DELETE FROM dataset 
+		WHERE assignmentno = #{assignmentno}
+			AND no != #{datasetno}
+	</update>
+	
+	<update id="datasetLabelingAddChecked" parameterType="hashmap" >
+	/* DatasetMapper.datasetLabelingAddChecked */
+		INSERT INTO dataset_labeling (datasetno, labelingno)
+		SELECT #{datasetno}, a.no
+		FROM labeling a 
+		WHERE a.checked = 1 
+			AND a.assignmentno = #{assignmentno}
+			AND a.no NOT IN (
+				SELECT labelingno FROM dataset_labeling 
+				WHERE datasetno = #{datasetno})
+	</update>
+
+	<update id="datasetLabelingFileAddChecked" parameterType="hashmap" >
+	/* DatasetMapper.datasetLabelingFileAddChecked */
+		INSERT INTO eval_file_ref
+		(assignmentno, datasetno, odatasetno, evalfileno)
+		SELECT #{assignmentno}, #{datasetno}, #{odatasetno}, f.no
+		FROM eval_file f
+			INNER JOIN labeling l
+				ON l.imagefile = f.filename
+				AND l.checked = 1
+			INNER JOIN dataset_labeling d
+				ON l.no = d.labelingno
+				AND d.datasetno = #{odatasetno}
+		WHERE f.datasetno = #{odatasetno}
+			AND f.no NOT IN (
+				SELECT r.evalfileno FROM eval_file_ref r
+				WHERE datasetno = #{datasetno}
+			)
+	</update>
+	
+	<update id="evalNeedTime" parameterType="hashmap">
+	/* DatasetMapper.evalNeedTime */
+		UPDATE dataset 
+		SET  evalneedtime = CURRENT_TIMESTAMP
+		WHERE no = #{datasetno}
+	</update>
+	
+</mapper>

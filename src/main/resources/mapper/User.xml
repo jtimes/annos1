@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.UserMapper">
+	
+	<select id="selectUserTotal" resultType="int" parameterType="hashmap">
+	/* UserMapper.selectUserTotal */
+		SELECT count(u.no) FROM user u, userorg o
+		WHERE 1=1
+			AND u.no = o.userno
+			<if test='orgcode != null and orgcode != "0"'>AND o.orgcode = #{orgcode}</if>
+			<if test='delyn != null and delyn != ""'>AND u.delyn = #{delyn}</if>
+	</select>
+	
+	<select id="selectUserList" resultType="egovMap" parameterType="hashmap">
+	/* UserMapper.selectUserList */
+		SELECT 
+			u.no, u.username, u.creationtime, u.updatetime, u.delyn
+			, o.*
+		FROM user u, userorg o
+		WHERE 1=1
+			AND u.no = o.userno
+			<if test='orgcode != null and orgcode != "0"'>AND o.orgcode = #{orgcode}</if>
+			<if test='delyn != null and delyn != ""'>AND u.delyn = #{delyn}</if>
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+	
+	<update id="userDel" parameterType="string">
+	/* UserMapper.userDel */
+		UPDATE user set
+			updatetime = current_timestamp()
+			, delyn = 'Y'
+		WHERE no = #{userno}
+	</update>
+	
+	<select id="userEmailDupCheck" resultType="int" parameterType="hashmap">
+	/* UserMapper.userEmailDupCheck */
+		SELECT count(*) from user
+		WHERE email = #{email}
+	</select>
+	
+	<insert id="userAdd" parameterType="hashmap" useGeneratedKeys="true" keyProperty="no">
+	/* UserMapper.userAdd */
+		INSERT INTO user
+			(username, pw, email , creationtime, updatetime, contact, delyn)
+		VALUES(#{username}, password(#{pw}), #{email}
+			, current_timestamp(), current_timestamp(), #{contact}, 'N')
+		<selectKey keyProperty="no" resultType="Integer" order="AFTER">
+			SELECT LAST_INSERT_ID() 
+		</selectKey>
+	</insert>
+	
+	<insert id="userorgAdd" parameterType="hashmap">
+	/* UserMapper.userorgAdd */
+		INSERT INTO userorg (userno, level, orgcode)
+		VALUES(#{no}, 0, #{orgcode})
+	</insert>
+	
+	
+</mapper>

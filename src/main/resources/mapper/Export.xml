@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.ExportMapper">
+	
+	<select id="selectExportTotal" resultType="int" parameterType="hashmap">
+	/* ExportMapper.selectExportTotal */
+		SELECT count(*) FROM export_bg t
+		WHERE 1=1
+			<if test='assignmentno != null and assignmentno != ""'>AND t.assignmentno = #{assignmentno}</if>
+			<if test='datasetno != null and datasetno != ""'>AND t.datasetno = #{datasetno}</if>
+			<if test='menu != null and menu != "0"'>AND t.menu = #{menu}</if>
+			<if test='filename != null and filename != ""'>AND t.filename = #{filename}</if>
+			<if test='status != null and status != ""'>AND t.status = #{status}</if>
+	</select>
+	
+	<select id="selectExportList" resultType="egovMap" parameterType="hashmap">
+	/* ExportMapper.selectExportList */
+		SELECT t.*
+		FROM export_bg t
+		WHERE 1=1
+			<if test='no != null and no != ""'>AND t.no = #{no}</if>
+			<if test='assignmentno != null and assignmentno != ""'>AND t.assignmentno = #{assignmentno}</if>
+			<if test='datasetno != null and datasetno != ""'>AND t.datasetno = #{datasetno}</if>
+			<if test='menu != null and menu != ""'>AND t.menu = #{menu}</if>
+			<if test='filename != null and filename != ""'>AND t.filename = #{filename}</if>
+			<if test='status != null and status != ""'>AND t.status = #{status}</if>
+			<if test='bgtype != null and bgtype == "zip"'>AND t.menu = 'zip'</if>
+			<if test='bgtype != null and bgtype != "zip"'>AND t.menu != 'zip'</if>
+		ORDER BY t.no
+		<if test='limit != null and limit != ""'>
+		LIMIT #{limit} OFFSET #{offset}</if>
+	</select>
+	
+	<select id="exportDetail" resultType="egovMap" parameterType="export">
+	/* ExportMapper.exportDetail */
+		SELECT t.*
+		FROM export_bg t
+		WHERE 1=1
+			AND t.no = #{no}
+	</select>
+	
+	<insert id="exportAdd" parameterType="hashmap" useGeneratedKeys="true" keyProperty="no">
+	/* ExportMapper.exportAdd */
+		INSERT INTO export_bg
+			(assignmentno, datasetno, odatasetno, menu, subdir
+			, filename, ziptype, exportformat, tasklimit, splitsize)
+		VALUES(#{assignmentno}, #{datasetno}, #{odatasetno}, #{menu}, #{subdir}
+			, #{filename}, #{ziptype}, #{exportformat}, #{tasklimit}, #{splitsize})
+		<selectKey keyProperty="no" resultType="Integer" order="AFTER">
+			SELECT LAST_INSERT_ID() 
+		</selectKey>
+	</insert>
+	
+	<update id="exportUpdate" parameterType="hashmap">
+	/* ExportMapper.exportUpdate */
+		UPDATE export_bg SET
+			updatetime = current_timestamp()
+			<if test='status != null and status != ""'>, status = #{status}</if>
+			<if test='totalCount != null and totalCount != ""'>, total_count = #{totalCount}</if>
+			<if test='currentCount != null and currentCount != ""'>, current_count = #{currentCount}</if>
+		WHERE no = #{no}
+	</update>
+	
+</mapper>

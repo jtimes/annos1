@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.EvalBig2Mapper">
+	
+	<sql id="labelListOrderBy">
+		<if test='orderColumn != null and orderColumn != ""'>
+		ORDER BY a.${orderColumn} ${orderBy}
+		</if>
+		LIMIT #{limit} OFFSET #{offset}
+	</sql>
+	
+	<select id="selectEvalObjSimpleListTotal" resultType="int" parameterType="hashmap">
+	/* EvalBig2Mapper.selectEvalObjSimpleListTotal */
+		SELECT count(*)
+		FROM eval_obj_pred0_ref a
+		WHERE a.datasetno = #{datasetno}
+	</select>
+	
+	<select id="selectEvalObjSimpleCheckedTotal" resultType="int" parameterType="hashmap">
+	/* EvalBig2Mapper.selectEvalObjSimpleCheckedTotal */
+		SELECT count(*)
+		FROM eval_obj_pred0_ref a
+		WHERE a.datasetno = #{datasetno}
+			AND a.checked = 1
+	</select>
+
+	<select id="selectEvalObjSimpleList" resultType="egovMap" parameterType="hashmap">
+	/* EvalBig2Mapper.selectEvalObjSimpleList */
+		SELECT a.*, b.no AS eno, b.checked AS echecked
+		FROM eval_obj_pred0_ref b USE INDEX (datasetno_2)
+			INNER JOIN eval_obj a USE INDEX (PRIMARY)
+			ON b.evalobjno = a.no
+		WHERE 1=1
+			AND b.datasetno = #{datasetno}
+			<if test="checked != null and checked != ''">and b.checked = #{checked}</if>
+		<include refid="labelListOrderBy" />
+	</select>
+	
+	<select id="selectEvalObjSimplePredListTotal" resultType="int" parameterType="hashmap">
+	/* EvalBig2Mapper.selectEvalObjSimplePredListTotal */
+		SELECT count(*)
+		FROM eval_obj_pred1_ref a
+		WHERE a.datasetno = #{datasetno}
+	</select>
+	
+	<select id="selectEvalObjSimpleCheckedPredTotal" resultType="int" parameterType="hashmap">
+	/* EvalBig2Mapper.selectEvalObjSimpleCheckedPredTotal */
+		SELECT count(*)
+		FROM eval_obj_pred1_ref a
+		WHERE a.datasetno = #{datasetno}
+			AND a.checked = 1
+	</select>
+
+	<select id="selectEvalObjSimplePredList" resultType="egovMap" parameterType="hashmap">
+	/* EvalBig2Mapper.selectEvalObjSimplePredList */
+		SELECT a.*, b.no AS eno, b.checked AS echecked
+		FROM eval_obj_pred1_ref b USE INDEX (datasetno_2)
+			INNER JOIN eval_obj a USE INDEX (PRIMARY)
+			ON b.evalobjno = a.no
+		WHERE 1=1
+			AND b.datasetno = #{datasetno}
+			<if test='checked != null and checked != ""'>and b.checked = #{checked}</if>
+		<include refid="labelListOrderBy" />
+	</select>
+
+	
+	
+	<update id="evalObjRefLink" parameterType="hashmap">
+	/* EvalBig2Mapper.evalObjRefLink */
+		INSERT INTO eval_obj_pred${predFlag}_ref
+			(assignmentno, datasetno, evalobjno, odatasetno)
+		SELECT #{assignmentno}, #{datasetno}, o.no, #{datasetno}
+		FROM eval_obj_pred${predFlag}_ref o
+		WHERE o.datasetno = #{datasetno}
+		ORDER BY o.no
+	</update>
+	
+	<update id="evalObjRefInit" parameterType="hashmap">
+	/* EvalBig2Mapper.evalObjRefInit */
+		INSERT INTO eval_obj_pred${predFlag}_ref
+			(assignmentno, datasetno, evalobjno, odatasetno)
+		SELECT #{assignmentno}, #{datasetno}, o.no, #{datasetno}
+		FROM eval_obj o
+		WHERE o.datasetno = #{datasetno}
+			AND o.pred_flag = ${predFlag}
+	</update>
+	
+</mapper>

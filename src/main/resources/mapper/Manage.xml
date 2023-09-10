@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.ManageMapper">
+
+	<select id="login" resultType="egovMap" parameterType="hashmap">
+	/* ManageMapper.login */
+		SELECT o.orgname, uo.level, o.orgcode, uo.userno
+		FROM userorg uo
+			INNER JOIN organization o ON uo.orgcode = o.orgcode
+		WHERE uo.userno = (
+			SELECT no FROM user WHERE username = #{name} AND pw = password(#{pw})
+		)
+	</select>
+
+	<select id="selectOrgTotal" resultType="int" parameterType="hashmap">
+	/* ManageMapper.selectOrgTotal */
+		SELECT count(*) FROM organization o
+		WHERE 1=1
+			<if test='delyn != null and delyn != ""'>AND o.delyn = #{delyn}</if>
+			<if test='delyn == null or delyn == ""'>AND o.delyn = 'N'</if>
+	</select>
+	
+	<select id="selectOrgList" resultType="egovMap" parameterType="hashmap">
+	/* ManageMapper.selectOrgListselectOrgList */
+		SELECT 
+			o.*
+		FROM organization o
+		WHERE 1=1
+			<if test='delyn != null and delyn != ""'>AND o.delyn = #{delyn}</if>
+			<if test='delyn == null or delyn == ""'>AND o.delyn = 'N'</if>
+		ORDER BY o.no DESC
+		LIMIT #{limit} OFFSET #{offset}
+	</select>
+	
+	<select id="orgnewcode" resultType="int">
+	/* ManageMapper.orgnewcode */
+		SELECT IFNULL(CAST(MAX(SUBSTRING(orgcode, 3, 4)) AS UNSIGNED), 0) + 1 
+		FROM organization
+	</select>
+	
+	<insert id="orgcreate" parameterType="hashmap">
+	/* ManageMapper.orgcreate */
+		INSERT INTO organization
+			(orgname, note, updatetime, orgcode, managername, email, contact)
+		VALUES(#{orgname}, #{note}, current_timestamp(), #{orgcode}
+			, #{managername}, #{email}, #{contact})
+	</insert>
+
+	<update id="orgupdate" parameterType="hashmap">
+	/* ManageMapper.orgupdate */
+		UPDATE organization set
+			orgcode = #{orgcode}
+			<if test="orgname != null and orgname != ''">, orgname = #{orgname}</if>
+			<if test="note != null">, note = #{note}</if>
+			<if test="managername != null">, managername = #{managername}</if>
+			<if test="email != null">, email = #{email}</if>
+			<if test="contact != null">, contact = #{contact}</if>
+		WHERE orgcode = #{orgcode}
+	</update>
+	
+	<update id="orgDel" parameterType="string">
+	/* ManageMapper.orgDel */
+		UPDATE organization set
+			updatetime = current_timestamp()
+			, delyn = 'Y'
+		WHERE orgcode = #{orgcode}
+	</update>
+	
+	<select id="existOrgCode" resultType="int" parameterType="string">
+	/* ManageMapper.existOrgCode */
+		SELECT count(*) FROM organization o
+		WHERE 
+			o.orgcode = #{orgcode}
+	</select>
+	
+	<update id="checkedUpdate" parameterType="hashmap">
+	/* ManageMapper.checkedUpdate */
+		UPDATE ${table} a set
+			<if test='nos == "reverse"'>a.checked = (1-a.checked)</if>
+			<if test='nos != "reverse"'>a.checked = #{value}</if>
+		WHERE 1=1
+			<if test='nos != null and nos != "" and nos != "reverse"'>AND a.no = #{nos}</if>
+			and a.assignmentno = #{assignmentno}
+			<if test='datasetno != null and datasetno != ""'>AND a.datasetno = #{datasetno}</if>
+	</update>
+	
+	
+</mapper>

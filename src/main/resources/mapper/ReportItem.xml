@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.ReportItemMapper">
+	
+	<select id="selectReportItemList" resultType="egovMap" parameterType="hashmap">
+	/* ReportItemMapper.selectReportItemList */
+		SELECT 
+			i.*
+			<if test='reportno != null and reportno != ""'>, ri.value as rValue
+			, ri.savepath as rSavepath
+			, ifnull(ri.visible, 0) as visible</if>
+		FROM reportitem i <if test='reportno != null and reportno != ""'>
+			LEFT OUTER JOIN report_reportitem ri 
+				ON i.no = ri.reportitemno AND ri.reportno = #{reportno}</if>
+		ORDER BY i.rank, i.no
+	</select>
+
+	<select id="selectReportReportItemList" resultType="egovMap" parameterType="hashmap">
+	/* ReportItemMapper.selectReportReportItemList */
+		SELECT 
+			i.*
+		FROM report_reportitem i
+		WHERE i.reportno = #{reportno}
+		<if test='visible != null and visible != ""'>and visible = #{visible}</if>
+		ORDER BY i.rank, i.reportitemno
+	</select>
+
+	<select id="selectReportReportItem" resultType="egovMap" parameterType="hashmap">
+	/* ReportItemMapper.selectReportReportItem */
+		SELECT 
+			i.*
+			, t.datatype
+			, (select assignmentno from report where no = 7) as assignmentno
+		FROM reportitem t 
+			LEFT OUTER JOIN report_reportitem i ON i.reportitemno = t.no
+				AND i.reportno = #{reportno}
+		WHERE t.no = #{reportitemno}
+	</select>
+
+	<insert id="reportItemAdd" parameterType="hashmap">
+	/* ReportItemMapper.reportItemAdd */
+		INSERT INTO report_reportitem
+			(reportno, reportitemno, value, `rank`, visible, savepath)
+		VALUES(#{reportno}, #{reportitemno}, #{value}, #{rank}, #{visible}, #{savepath})
+	</insert>
+
+	<update id="reportItemUpdate" parameterType="hashmap">
+	/* ReportItemMapper.reportItemUpdate */
+		UPDATE report_reportitem SET
+			reportitemno = #{reportitemno}
+			<if test='value != null and value != ""'>, value = #{value}</if>
+			<if test='rank != null and rank != ""'>, `rank` = #{rank}</if>
+			<if test='visible != null and visible != ""'>, visible = #{visible}</if>
+			<if test='savepath != null and savepath != ""'>, savepath = #{savepath}</if>
+		WHERE reportno = #{reportno} AND reportitemno = #{reportitemno}
+	</update>
+
+	<update id="reportItemInit" parameterType="hashmap">
+	/* ReportItemMapper.reportItemInit */
+		UPDATE report_reportitem rr
+		JOIN (
+			SELECT no, name, defaultvalue FROM reportitem
+		) org on org.no = rr.reportitemno and rr.reportno = (
+			select r.no from report r, dataset d 
+			where d.no = r.datasetno and d.no = #{datasetno}
+		)
+		SET rr.value = org.defaultvalue
+	</update>
+	
+	<select id="evalClsList" resultType="egovMap" parameterType="hashmap">
+	/* ReportItemMapper.evalClsList */
+		SELECT 
+			c.no, datasetno, name
+			, ap_50, ap_55, ap_60, ap_65, ap_70, ap_75, ap_80, ap_85, ap_90, ap_95
+			, precision_50, precision_55 , precision_60, precision_65 , precision_70, precision_75
+			, precision_80, precision_85 , precision_90, precision_95
+			, recall_50, recall_55 , recall_60, recall_65 , recall_70, recall_75
+			, recall_80, recall_85 , recall_90, recall_95
+			, f1_60, f1_65 , f1_70, f1_75 , f1_80, f1_85 , f1_90, f1_95
+			, mAP, c.isopen, c.creationtime
+		FROM eval_cls c
+		WHERE c.datasetno = #{datasetno}
+			AND c.name IN (NULL <foreach collection="classes" item="item" separator=""> ,#{item} </foreach>)
+		ORDER BY c.name
+	</select>
+	
+	<select id="evalObjList1" resultType="egovMap" parameterType="hashmap">
+	/* ReportItemMapper.evalObjList1 */
+		SELECT 
+			a.cls, a.iou, IFNULL(b.objCount, 0) objCount
+		FROM (
+			SELECT c.cls, avg(c.iou) as iou
+			FROM eval_obj_pred1_ref r
+				INNER JOIN eval_obj c ON r.evalobjno = c.no
+			WHERE r.datasetno = #{datasetno}
+				AND (c.cls IS NULL <foreach collection="classes" item="item" separator="">
+					OR c.cls = #{item} </foreach>)
+			GROUP BY c.cls
+			ORDER BY c.cls
+		) a
+		LEFT OUTER JOIN (
+			SELECT	c.cls, count(*) objCount
+			FROM eval_obj_pred0_ref r
+				INNER JOIN eval_obj c ON r.evalobjno = c.no
+			WHERE r.datasetno = #{datasetno}
+				AND c.pred_flag = 0
+				AND (c.cls IS NULL <foreach collection="classes" item="item" separator="">
+					OR c.cls = #{item} </foreach>)
+			GROUP BY c.cls
+			ORDER BY c.cls
+		) b ON a.cls = b.cls
+	</select>
+	
+	<!-- 
+	<select id="evalObjList2" resultType="egovMap" parameterType="hashmap">
+	/* ReportItemMapper.evalObjList2 */
+		SELECT	c.cls, c.obj_id, c.width, c.height, (c.width * c.height) as segmentation
+		FROM eval_obj c
+		WHERE c.datasetno = #{datasetno}
+			AND c.pred_flag = 1
+		ORDER BY c.cls, c.obj_id
+		LIMIT 1000
+	</select>
+	 -->
+	 
+	<select id="evalFileObjCountList" resultType="egovMap" parameterType="hashmap">
+	/* ReportItemMapper.evalFileObjCountList */
+		SELECT
+			(row_number() over(order by f.no) -1) as fileNo
+			, f.obj_count as objectCnt
+		FROM eval_file f
+		WHERE f.datasetno = #{datasetno}
+		ORDER BY f.no
+	</select>
+	
+</mapper>

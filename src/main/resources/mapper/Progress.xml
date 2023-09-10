@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.ProgressMapper">
+	
+	
+	<select id="selectProgress" resultType="egovMap" parameterType="hashmap">
+	/* ProgressMapper.selectProgress */
+		SELECT a.*
+		FROM progress a
+		WHERE 1=1
+			<if test='progressno != null and progressno != ""'>AND a.no = #{progressno}</if>
+			<if test='progressno == null or progressno == ""'>
+			AND a.assignmentno = #{assignmentno}
+			AND a.datasetno = #{datasetno}
+			AND a.type = #{type}</if>
+	</select>
+	
+	<insert id="progressAdd" parameterType="hashmap" useGeneratedKeys="true" keyProperty="no">
+	/* FilterMapper.progressAdd */
+		INSERT progress 
+			(assignmentno, datasetno, progress, note, status, `type`)
+		VALUES (#{assignmentno}, #{datasetno}, #{progress}, #{note}, #{status}, #{type})
+		<selectKey keyProperty="no" resultType="Integer" order="AFTER">
+			SELECT LAST_INSERT_ID() 
+		</selectKey>
+	</insert>
+	
+	<update id="progressUpdate" parameterType="hashmap">
+	/* FilterMapper.progressUpdate */
+		UPDATE progress a SET
+			updatetime = current_timestamp()
+			<if test='progress != null and progress != ""'>, progress = #{progress}</if>
+			<if test='note != null and note != ""'>, note = #{note}</if>
+			<if test='status != null and status != ""'>, status = #{status}</if>
+		WHERE 1=1
+			<if test='progressno != null and progressno != ""'>AND a.no = #{progressno}</if>
+			<if test='progressno == null or progressno == ""'>
+			AND a.assignmentno = #{assignmentno}
+			AND a.datasetno = #{datasetno}
+			AND a.type = #{type}</if>
+	</update>
+	
+</mapper>

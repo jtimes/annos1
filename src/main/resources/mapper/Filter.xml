@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.FilterMapper">
+	
+	<sql id="labelListCondition">
+		<if test="imagesizeFrom != null and imagesizeFrom != ''">and a.imagesize <![CDATA[>=]]> #{imagesizeFrom}</if>
+		<if test="imagesizeTo != null and imagesizeTo != ''">and a.imagesize <![CDATA[<=]]> #{imagesizeTo}</if>
+		<if test="imagewidthFrom != null and imagewidthFrom != ''">and a.imagewidth <![CDATA[>=]]> #{imagewidthFrom}</if>
+		<if test="imagewidthTo != null and imagewidthTo != ''">and a.imagewidth <![CDATA[<=]]> #{imagewidthTo}</if>
+		<if test="imageheightFrom != null and imageheightFrom != ''">and a.imageheight <![CDATA[>=]]> #{imageheightFrom}</if>
+		<if test="imageheightTo != null and imageheightTo != ''">and a.imageheight <![CDATA[<=]]> #{imageheightTo}</if>
+		<if test="imageratioFrom != null and imageratioFrom != ''">and a.imageratio <![CDATA[>=]]> #{imageratioFrom}</if>
+		<if test="imageratioTo != null and imageratioTo != ''">and a.imageratio <![CDATA[<=]]> #{imageratioTo}</if>
+		<if test="labelingsizeFrom != null and labelingsizeFrom != ''"> and a.labelingsize <![CDATA[>=]]> #{labelingsizeFrom} </if>
+		<if test="labelingsizeTo != null and labelingsizeTo != ''"> and a.labelingsize <![CDATA[<=]]> #{labelingsizeTo} </if>
+		<if test="imagevalidity != null and imagevalidity != ''">and a.imagevalidity = #{imagevalidity}</if>
+		<if test="labelingvalidity != null and labelingvalidity != ''"> and a.labelingvalidity = #{labelingvalidity} </if>
+		<if test="imagedateFrom != null and imagedateFrom != ''">and a.imagedate <![CDATA[>=]]> str_to_date(#{imagedateFrom}, '%Y%m%d')</if>
+		<if test="imagedateTo != null and imagedateTo != ''">and a.imagedate <![CDATA[<]]> str_to_date(#{imagedateTo}, '%Y%m%d') + 1</if>
+		<if test="imageupdateFrom != null and imageupdateFrom != ''">and a.imageupdate <![CDATA[>=]]> str_to_date(#{imageupdateFrom}, '%Y%m%d')</if>
+		<if test="imageupdateTo != null and imageupdateTo != ''">and a.imageupdate <![CDATA[<]]> str_to_date(#{imageupdateTo}, '%Y%m%d') + 1</if>
+		<if test="labelingdateFrom != null and labelingdateFrom != ''"> and a.labelingdate <![CDATA[>=]]> str_to_date(#{labelingdateFrom}, '%Y%m%d') </if>
+		<if test="labelingdateTo != null and labelingdateTo != ''"> and a.labelingdate <![CDATA[<]]> str_to_date(#{labelingdateTo}, '%Y%m%d') + 1 </if>
+		<if test="labelingupdateFrom != null and labelingupdateFrom != ''"> and a.labelingupdate <![CDATA[>=]]> str_to_date(#{labelingupdateFrom}, '%Y%m%d') </if>
+		<if test="labelingupdateTo != null and labelingupdateTo != ''"> and a.labelingupdate <![CDATA[<]]> str_to_date(#{labelingupdateTo}, '%Y%m%d') + 1 </if>
+	</sql>
+	
+	<sql id="labelListOrderBy">
+		<if test='orderColumn != null and orderColumn != ""'>
+		ORDER BY a.${orderColumn} ${orderBy}
+		</if><if test='orderColumn == null or orderColumn == ""'>
+		ORDER BY a.no </if>
+		<if test='limit != null and limit != ""'>LIMIT #{limit}</if>
+	</sql>
+	
+	<update id="filterDsUpdate0" parameterType="hashmap">
+	/* FilterMapper.filterDsUpdate0 */
+		UPDATE labeling a
+		SET a.checked = 0
+		WHERE a.assignmentno = #{assignmentno}
+			AND a.checked = 1
+	</update>
+	
+	<update id="filterDsUpdate" parameterType="hashmap">
+	/* FilterMapper.filterDsUpdate */
+		UPDATE labeling a,  (SELECT no
+		        FROM v_labeling_evalfile a
+		        WHERE a.assignmentno = #{assignmentno}
+		        	AND a.edatasetno = #{datasetno}
+		        	<include refid="labelListCondition"></include>
+		        <include refid="labelListOrderBy"></include> 
+		) b
+		SET a.checked = #{checked}
+		WHERE a.assignmentno = #{assignmentno}
+			and a.no = b.no
+	</update>
+	
+	
+	<update id="filterEdsUpdate0" parameterType="hashmap">
+	/* FilterMapper.filterEdsUpdate0 */
+		UPDATE eval_file_ref a
+		SET a.checked = 0
+		WHERE a.assignmentno = #{assignmentno}
+			AND a.datasetno = #{datasetno}
+			AND a.checked = 1
+	</update>
+	
+	<update id="filterEdsUpdate" parameterType="hashmap">
+	/* FilterMapper.filterEdsUpdate */
+		UPDATE eval_file_ref a,  (SELECT eno
+		        FROM v_labeling_evalfile a
+		        WHERE a.assignmentno = #{assignmentno}
+		        	AND a.edatasetno = #{datasetno}
+		        	<include refid="labelListCondition"></include>
+		        <include refid="labelListOrderBy"></include> 
+		) b
+		SET a.checked = #{checked}
+		WHERE a.assignmentno = #{assignmentno}
+			AND a.datasetno = #{datasetno}
+			AND a.no = b.eno
+	</update>
+	
+	
+</mapper>

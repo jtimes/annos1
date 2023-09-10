@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.LabelingMapper">
+	
+	<sql id="labelListCondition">
+		<if test="imagesizeFrom != null and imagesizeFrom != ''">and a.imagesize <![CDATA[>=]]> #{imagesizeFrom}</if>
+		<if test="imagesizeTo != null and imagesizeTo != ''">and a.imagesize <![CDATA[<=]]> #{imagesizeTo}</if>
+		<if test="imagewidthFrom != null and imagewidthFrom != ''">and a.imagewidth <![CDATA[>=]]> #{imagewidthFrom}</if>
+		<if test="imagewidthTo != null and imagewidthTo != ''">and a.imagewidth <![CDATA[<=]]> #{imagewidthTo}</if>
+		<if test="imageheightFrom != null and imageheightFrom != ''">and a.imageheight <![CDATA[>=]]> #{imageheightFrom}</if>
+		<if test="imageheightTo != null and imageheightTo != ''">and a.imageheight <![CDATA[<=]]> #{imageheightTo}</if>
+		<if test="imageratioFrom != null and imageratioFrom != ''">and a.imageratio <![CDATA[>=]]> #{imageratioFrom}</if>
+		<if test="imageratioTo != null and imageratioTo != ''">and a.imageratio <![CDATA[<=]]> #{imageratioTo}</if>
+		<if test="labelingsizeFrom != null and labelingsizeFrom != ''">
+			<choose><when test='gttype != null and gttype == "hgt"'>and a.hgtsize <![CDATA[>=]]> #{labelingsizeFrom}</when>
+			<otherwise>and a.labelingsize <![CDATA[>=]]> #{labelingsizeFrom}</otherwise></choose>
+		</if>
+		<if test="labelingsizeTo != null and labelingsizeTo != ''">
+			<choose><when test='gttype != null and gttype == "hgt"'>and a.hgtsize <![CDATA[<=]]> #{labelingsizeTo}</when>
+			<otherwise>and a.labelingsize <![CDATA[<=]]> #{labelingsizeTo}</otherwise></choose>
+		</if>
+		<if test="imagevalidity != null and imagevalidity != ''">and a.imagevalidity = #{imagevalidity}</if>
+		<if test="labelingvalidity != null and labelingvalidity != ''">
+			<choose><when test='gttype != null and gttype == "hgt"'>and a.hgtvalidity = #{labelingvalidity}</when>
+			<otherwise>and a.labelingvalidity = #{labelingvalidity}</otherwise></choose>
+		</if>
+		<if test="imagedateFrom != null and imagedateFrom != ''">and a.imagedate <![CDATA[>=]]> str_to_date(#{imagedateFrom}, '%Y%m%d')</if>
+		<if test="imagedateTo != null and imagedateTo != ''">and a.imagedate <![CDATA[<]]> str_to_date(#{imagedateTo}, '%Y%m%d') + 1</if>
+		<if test="imageupdateFrom != null and imageupdateFrom != ''">and a.imageupdate <![CDATA[>=]]> str_to_date(#{imageupdateFrom}, '%Y%m%d')</if>
+		<if test="imageupdateTo != null and imageupdateTo != ''">and a.imageupdate <![CDATA[<]]> str_to_date(#{imageupdateTo}, '%Y%m%d') + 1</if>
+		<if test="labelingdateFrom != null and labelingdateFrom != ''">
+			<choose><when test='gttype != null and gttype == "hgt"'>and a.hgtdate <![CDATA[>=]]> str_to_date(#{labelingdateFrom}, '%Y%m%d')</when>
+			<otherwise>and a.labelingdate <![CDATA[>=]]> str_to_date(#{labelingdateFrom}, '%Y%m%d')</otherwise></choose>
+		</if>
+		<if test="labelingdateTo != null and labelingdateTo != ''">
+			<choose><when test='gttype != null and gttype == "hgt"'>and a.hgtdate <![CDATA[<]]> str_to_date(#{labelingdateTo}, '%Y%m%d') + 1</when>
+			<otherwise>and a.labelingdate <![CDATA[<]]> str_to_date(#{labelingdateTo}, '%Y%m%d') + 1</otherwise></choose>
+		</if>
+		<if test="labelingupdateFrom != null and labelingupdateFrom != ''">
+			<choose><when test='gttype != null and gttype == "hgt"'>and a.hgtdate <![CDATA[>=]]> str_to_date(#{labelingupdateFrom}, '%Y%m%d')</when>
+			<otherwise>and a.labelingupdate <![CDATA[>=]]> str_to_date(#{labelingupdateFrom}, '%Y%m%d')</otherwise></choose>
+		</if>
+		<if test="labelingupdateTo != null and labelingupdateTo != ''">
+			<choose><when test='gttype != null and gttype == "hgt"'>and a.hgtupdate <![CDATA[<]]> str_to_date(#{labelingupdateTo}, '%Y%m%d') + 1</when>
+			<otherwise>and a.labelingupdate <![CDATA[<]]> str_to_date(#{labelingupdateTo}, '%Y%m%d') + 1</otherwise></choose>
+		</if>
+	</sql>
+	<sql id="labelListOrderBy">
+		<if test='orderColumn != null and orderColumn != ""'>
+		ORDER BY a.${orderColumn} ${orderBy}
+		</if><if test='orderColumn == null or orderColumn == ""'>
+		ORDER BY a.no </if>
+		LIMIT #{limit} OFFSET #{offset}
+	</sql>
+	
+	<select id="selectLabelingTotal" resultType="int" parameterType="hashmap">
+	/* LabelingMapper.selectLabelingTotal */
+		SELECT count(*)
+		FROM v_labeling_evalfile a
+		WHERE 1=1
+			AND a.assignmentno = #{assignmentno}
+			AND (a.edatasetno = #{datasetno} OR a.edatasetno IS NULL)
+			<include refid="labelListCondition" />
+	</select>
+	
+	<select id="selectLabelingList" resultType="egovMap" parameterType="hashmap">
+	/* LabelingMapper.selectLabelingList */
+		SELECT a.*
+		FROM v_labeling_evalfile a
+		WHERE 1 = 1
+			AND a.assignmentno = #{assignmentno}
+			AND (a.edatasetno = #{datasetno} OR a.edatasetno IS NULL)
+			<include refid="labelListCondition" />
+		<include refid="labelListOrderBy" />
+	</select>
+	
+	
+	<select id="getLabelingListChecked" resultType="int" parameterType="hashmap">
+	/* LabelingMapper.getLabelingListChecked */
+		SELECT count(*) AS  checkedCount
+		FROM v_labeling_evalfile a
+		WHERE a.checked = 1
+			AND a.assignmentno = #{assignmentno}
+			AND (a.edatasetno = #{datasetno} OR a.edatasetno IS NULL)
+	</select>
+	
+	<select id="selectLabelingCheckedList" resultType="egovMap" parameterType="hashmap">
+	/* LabelingMapper.selectLabelingCheckedList */
+		SELECT a.*
+			, date_format(a.imagedate, '%Y%m%d %H%i%s') imagedate2
+			, date_format(a.imageupdate, '%Y%m%d %H%i%s') imageupdate2
+		FROM v_labeling_evalfile a
+		WHERE a.checked = 1
+			AND a.assignmentno = #{assignmentno}
+			AND (a.edatasetno = #{datasetno} OR a.edatasetno IS NULL)
+		<include refid="labelListOrderBy" />
+	</select>
+	
+	
+	
+	<select id="getEt" resultType="string" parameterType="hashmap">
+	/* LabelingMapper.getEt */
+		SELECT date_format(MAX(b.creationtime), '%Y-%m-%d %H:%i:%s') AS et 
+		FROM eval_big b
+		WHERE b.assignmentno = #{assignmentno}
+	</select>
+	
+	
+	<select id="selectLabelingHgtTotal" resultType="int" parameterType="hashmap">
+	/* LabelingMapper.selectLabelingHgtTotal */
+		SELECT count(*) FROM assignment_hgt a
+		WHERE a.assignmentno = #{assignmentno}
+			<include refid="labelListCondition" />
+	</select>
+	
+	<select id="selectLabelingHgtChecked" resultType="int" parameterType="hashmap">
+	/* LabelingMapper.selectLabelingHgtChecked */
+		SELECT count(*) FROM assignment_hgt a
+		WHERE a.assignmentno = #{assignmentno}
+			<include refid="labelListCondition" />
+			AND a.checked = 1
+	</select>
+	
+	<select id="selectLabelingHgtList" resultType="egovMap" parameterType="hashmap">
+	/* LabelingMapper.selectLabelingHgtList */
+		SELECT 
+			a.no hgtno
+			, a.hgtdir as labelingdir
+			, a.hgtfile as labelingfile
+			, a.*
+		FROM assignment_hgt a 
+		WHERE a.assignmentno = #{assignmentno}
+			<include refid="labelListCondition" />
+		<include refid="labelListOrderBy" />
+	</select>
+	
+	<select id="selectLabelingMgtTotal" resultType="int" parameterType="hashmap">
+	/* LabelingMapper.selectLabelingMgtTotal */
+		SELECT count(*) FROM labeling a
+		WHERE a.assignmentno = #{assignmentno}
+			and a.mgtflag = #{mgtflag}
+			<include refid="labelListCondition" />
+	</select>
+	
+	<select id="selectLabelingMgtList" resultType="egovMap" parameterType="hashmap">
+	/* LabelingMapper.selectLabelingMgtList */
+		SELECT 
+			a.*
+			, case when a.mgtflag = '1' then a.mgtdir else a.labelingdir end as labelingDir
+			, case when a.mgtflag = '1' then a.mgtfile else a.labelingfile end as labelingFile
+		FROM labeling a 
+		WHERE a.assignmentno = #{assignmentno}
+			and a.mgtflag = #{mgtflag}
+			<include refid="labelListCondition" />
+		<include refid="labelListOrderBy" />
+	</select>
+	
+	<select id="labelingCheckList" resultType="egovMap" parameterType="hashmap">
+	/* LabelingMapper.labelingCheckList */
+		SELECT 
+			a.*
+			, date_format(a.imagedate, '%Y%m%d %H%i%s') imagedate2
+			, date_format(a.imageupdate, '%Y%m%d %H%i%s') imageupdate2
+		FROM labeling a
+		WHERE a.assignmentno = #{assignmentno}
+			AND a.no IN (null
+			<foreach collection="anos" item="item" separator="">, #{item} </foreach>)
+	</select>
+	
+	<select id="labelingRandomList" resultType="egovMap" parameterType="hashmap">
+	/* LabelingMapper.labelingRandomList */
+		SELECT 
+			a.*
+			, date_format(a.imagedate, '%Y%m%d %H%i%s') imagedate2
+			, date_format(a.imageupdate, '%Y%m%d %H%i%s') imageupdate2
+		FROM labeling a
+		WHERE a.assignmentno = #{assignmentno}
+			AND a.no NOT IN (SELECT labelingno FROM assignment_hgt 
+				WHERE assignmentno = #{assignmentno})
+		ORDER BY rand() limit #{limit}
+	</select>
+	
+	
+	<insert id="labelingGtAdd" parameterType="hashmap">
+	/* LabelingMapper.labelingGtAdd */
+		INSERT INTO assignment_hgt
+			(assignmentno, labelingno, imagedir, imagefile
+			, imagesize, imagewidth, imageheight, imageratio, imagedate
+			, imageupdate, imagevalidity
+			, hgtdir, hgtfile
+			, hgtsize, hgtdate, hgtupdate, hgtvalidity)
+		VALUES 
+		<foreach collection="anos" item="item" separator=",">(
+			#{assignmentno}, #{item.no}, #{item.newimagedir}, #{item.newimagefile}
+			, #{item.imagesize}, #{item.imagewidth}, #{item.imageheight}, #{item.imageratio} 
+			, str_to_date(#{item.imagedate2}, '%Y%m%d %H%i%s')
+			, str_to_date(#{item.imageupdate2}, '%Y%m%d %H%i%s'), #{item.imagevalidity}
+			, #{item.newlabelingdir}, #{item.newlabelingfile}
+			, #{item.labelingsize}, CURRENT_TIMESTAMP
+			, CURRENT_TIMESTAMP, #{item.labelingvalidity})</foreach>
+	</insert>
+	
+	<insert id="labelingGtAddAll" parameterType="hashmap">
+	/* LabelingMapper.labelingGtAddAll */
+		INSERT INTO assignment_hgt 
+			(assignmentno, labelingno, imagedir, imagefile
+			, imagesize, imagewidth, imageheight, imageratio, imagedate
+			, imageupdate, imagevalidity
+			, hgtdir, hgtfile
+			, hgtsize, hgtdate, hgtupdate, hgtvalidity)
+		SELECT #{assignmentno}, a.no
+			, replace(a.imagedir, #{srcDir}, #{newDir}), a.imagefile
+			, imagesize, imagewidth, imageheight, imageratio, imagedate
+			, imageupdate, imagevalidity
+			, replace(a.labelingdir, #{srcDir}, #{newDir}), a.labelingfile
+			, labelingsize, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, labelingvalidity
+		FROM labeling a 
+		WHERE a.assignmentno = #{assignmentno}
+	</insert>
+	
+	<delete id="labelingGtDel" parameterType="hashmap">
+	/* LabelingMapper.labelingGtDel */
+		DELETE FROM assignment_hgt
+		WHERE 1=1
+			AND no in (null
+		<foreach collection="anos" item="item" separator="">, #{item} </foreach>)
+	</delete>
+	
+	<delete id="labelingGtDelAll" parameterType="hashmap">
+	/* LabelingMapper.labelingGtDelAll */
+		DELETE FROM assignment_hgt
+		WHERE assignmentno = #{assignmentno}
+	</delete>
+	
+	<select id="getLabeling" resultType="egovMap" parameterType="hashmap">
+	/* LabelingMapper.getLabeling */
+		SELECT 
+			a.*
+		FROM labeling a
+		WHERE a.no = #{labelingno}
+	</select>
+	
+	<select id="getGtLabeling" resultType="egovMap" parameterType="hashmap">
+	/* LabelingMapper.getGtLabeling */
+		SELECT 
+			a.*
+			, a.hgtdir as labelingdir
+			, a.hgtfile as labelingfile
+		FROM assignment_hgt a
+		WHERE a.no = #{hgtno}
+	</select>
+	
+	<select id="labelingGtList" resultType="egovMap" parameterType="hashmap">
+	/* LabelingMapper.labelingGtList */
+		SELECT 
+			t.*
+		FROM assignment_hgt t
+		WHERE 1=1
+			AND no in (null
+		<foreach collection="anos" item="item" separator="">, #{item} </foreach>)
+	</select>
+	
+	<update id="labelingMgtUpdate" parameterType="hashmap">
+	/* LabelingMapper.labelingMgtUpdate */
+		UPDATE labeling SET
+			mgtdir = #{mgtdir}
+			, mgtfile = #{mgtfile}
+			, mgtflag = '1'
+			, mgttime = current_timestamp()
+		WHERE no = #{labelingno}
+	</update>
+	
+	<update id="labelingMgtUpdateBulk" parameterType="hashmap">
+	/* LabelingMapper.labelingMgtUpdateBulk */
+		UPDATE labeling t
+		JOIN (<foreach collection="list" item="i" separator="UNION ALL"> 
+			SELECT #{i.labelingno} as no, #{i.mgtdir} as mgtdirup, #{i.mgtfile} as mgtfileup </foreach>
+		) up ON t.no = up.no
+		SET mgtdir=mgtdirup, mgtfile=mgtfileup, mgtflag = '1', mgttime=current_timestamp()
+	</update>
+	
+	<update id="labelingMgtReset" parameterType="hashmap">
+	/* LabelingMapper.labelingMgtReset */
+		UPDATE labeling set
+			mgtflag = '0'
+		WHERE assignmentno = #{assignmentno}
+	</update>
+	
+	
+	
+</mapper>

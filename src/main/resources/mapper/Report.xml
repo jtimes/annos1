@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.postinforg.annoscoreapi.mapper.ReportMapper">
+	
+	<select id="selectReportListTotal" resultType="int" parameterType="hashmap">
+	/* ReportMapper.selectReportListTotal */
+		SELECT count(*)
+		FROM report an
+		WHERE 1=1
+			<if test='assignmentno != null and assignmentno != ""'>and an.assignmentno = #{assignmentno}</if>
+	</select>
+	
+	<select id="selectReportList" resultType="egovMap" parameterType="hashmap">
+	/* ReportMapper.selectReportList */
+		SELECT 
+			an.*
+		FROM report an
+		WHERE 1=1
+			<if test='assignmentno != null and assignmentno != ""'>and an.assignmentno = #{assignmentno}</if>
+	</select>
+		
+	<insert id="reportAdd" parameterType="hashmap" useGeneratedKeys="true" keyProperty="no">
+	/* ReportMapper.reportAdd */
+		INSERT INTO report
+			(assignmentno, datasetno, data, note, creationtime, datasetnos)
+		VALUES (#{assignmentno}, #{datasetno}, #{data}, #{note}, current_timestamp(), #{datasetnos})
+		<selectKey keyProperty="no" resultType="Integer" order="AFTER">
+			SELECT LAST_INSERT_ID() 
+		</selectKey>
+	</insert>
+	
+	<update id="reportUpdate" parameterType="hashmap">
+	/* ReportMapper.reportUpdate */
+		UPDATE report SET
+			updatetime = current_timestamp()
+			<if test='data != null'>, data = #{data}</if>
+			<if test='note != null'>, note = #{note}</if>
+			<if test='datasetnos != null'>, datasetnos = #{datasetnos}</if>
+			<if test='audit != null'>, audit = #{audit}</if>
+		WHERE reportno = #{reportno} 
+	</update>
+	
+	<select id="selectReportDetail" resultType="egovMap" parameterType="hashmap">
+	/* ReportMapper.selectReportDetail */
+		SELECT 
+			an.*
+			, (select ifnull(d.eval_aptype, '') from dataset d 
+				where d.no = #{datasetno}) as evalAptype
+			, (select ifnull(d.eval_classes, '') from dataset d
+				where d.no = #{datasetno}) as evalClasses
+		FROM report an
+		WHERE an.no = #{reportno}
+	</select>
+	
+		
+	<update id="deleteReportItems" parameterType="hashmap">
+	/* ReportMapper.deleteReportItems */
+		DELETE FROM report_reportitem
+		WHERE reportno IN 
+			(SELECT no FROM report r 
+			WHERE r.assignmentno = #{assignmentno} 
+			AND r.datasetno != #{datasetno})
+	</update>
+	
+	<update id="deleteReports" parameterType="hashmap">
+	/* ReportMapper.deleteReports */
+		DELETE FROM report
+		WHERE assignmentno = #{assignmentno} 
+			AND datasetno != #{datasetno}
+	</update>
+	
+	<update id="deleteReportsDs" parameterType="hashmap">
+	/* ReportMapper.deleteReportsDs */
+		DELETE FROM report
+		WHERE datasetno = #{datasetno}
+	</update>
+	
+	<update id="deleteReportItemsDs" parameterType="hashmap">
+	/* ReportMapper.deleteReportItemsDs */
+		DELETE FROM report_reportitem
+		WHERE reportno IN 
+			(SELECT no FROM report r 
+			WHERE r.datasetno = #{datasetno})
+	</update>
+	
+</mapper>
