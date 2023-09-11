@@ -285,7 +285,7 @@ public class EvalController extends CommonController {
 			@RequestParam(defaultValue="") String datasetno
 			, @RequestParam(defaultValue="0") String pageno
 			, @RequestParam(defaultValue=DEFAULT_LIMIT) String limit
-			, @RequestParam(defaultValue="") String predFlag
+			, @RequestParam(defaultValue="0") String predFlag
 			, @RequestParam(defaultValue="") String orderColumn
 			, @RequestParam(defaultValue="asc") String orderBy) {
 		if(datasetno.equals("")) {
@@ -298,9 +298,10 @@ public class EvalController extends CommonController {
 		
 		param.put("orderColumn", orderColumn);
 		param.put("orderBy", orderBy);
+		param.put("predFlag", predFlag);
 		
-		boolean pred = predFlag.equals("1") ? true : false;
-		res = evalService.getEvalObjSimpleList(param, pred);
+//		boolean pred = predFlag.equals("1") ? true : false;
+		res = evalService.getEvalObjSimpleList(param, true);
 		resultSuccess(res, param);
 		
 		return res;
