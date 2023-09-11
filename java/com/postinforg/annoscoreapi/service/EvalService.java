@@ -351,15 +351,19 @@ public class EvalService {
 		Map param2 = new HashMap();
 		param2.put("datasetno", param.get("datasetno"));
 		try {
-			if(ispred) {
-				total = evalBig2Mapper.selectEvalObjSimplePredListTotal(param);
-				checked = evalBig2Mapper.selectEvalObjSimpleCheckedPredTotal(param);
-				l = evalBig2Mapper.selectEvalObjSimplePredList(param);
-			} else {
-				total = evalBig2Mapper.selectEvalObjSimpleListTotal(param);
-				checked = evalBig2Mapper.selectEvalObjSimpleCheckedTotal(param);
-				l = evalBig2Mapper.selectEvalObjSimpleList(param);
-			}
+//			if(ispred) {
+//				total = evalBig2Mapper.selectEvalObjSimplePredListTotal(param);
+//				checked = evalBig2Mapper.selectEvalObjSimpleCheckedPredTotal(param);
+//				l = evalBig2Mapper.selectEvalObjSimplePredList(param);
+//			} else {
+//				total = evalBig2Mapper.selectEvalObjSimpleListTotal(param);
+//				checked = evalBig2Mapper.selectEvalObjSimpleCheckedTotal(param);
+//				l = evalBig2Mapper.selectEvalObjSimpleList(param);
+//			}
+			
+			total = evalBig2Mapper.selectEvalObjSimplePredListTotal(param);
+			checked = evalBig2Mapper.selectEvalObjSimpleCheckedPredTotal(param);
+			l = evalBig2Mapper.selectEvalObjSimplePredList(param);
 			
 			EgovMap em = datasetMapper.selectDataset(param);
 			if(em != null && em.containsKey("name")) {

@@ -36,27 +36,38 @@
 		<include refid="labelListOrderBy" />
 	</select>
 	
+	
 	<select id="selectEvalObjSimplePredListTotal" resultType="int" parameterType="hashmap">
 	/* EvalBig2Mapper.selectEvalObjSimplePredListTotal */
-		SELECT count(*)
-		FROM eval_obj_pred1_ref a
-		WHERE a.datasetno = #{datasetno}
+		SELECT count(0)
+		FROM eval_obj_pred${predFlag}_ref b
+			INNER JOIN eval_obj a USE INDEX (PRIMARY)
+				ON b.evalobjno = a.no
+			INNER JOIN v_labeling_evalfile v
+				ON a.file_name = v.imagefile AND v.edatasetno = #{datasetno}
+		WHERE b.datasetno = #{datasetno}
 	</select>
 	
 	<select id="selectEvalObjSimpleCheckedPredTotal" resultType="int" parameterType="hashmap">
 	/* EvalBig2Mapper.selectEvalObjSimpleCheckedPredTotal */
-		SELECT count(*)
-		FROM eval_obj_pred1_ref a
-		WHERE a.datasetno = #{datasetno}
-			AND a.checked = 1
+		SELECT count(0)
+		FROM eval_obj_pred${predFlag}_ref b
+			INNER JOIN eval_obj a USE INDEX (PRIMARY)
+				ON b.evalobjno = a.no
+			INNER JOIN v_labeling_evalfile v
+				ON a.file_name = v.imagefile AND v.edatasetno = #{datasetno}
+		WHERE b.datasetno = #{datasetno}
+			AND b.checked = 1
 	</select>
 
 	<select id="selectEvalObjSimplePredList" resultType="egovMap" parameterType="hashmap">
 	/* EvalBig2Mapper.selectEvalObjSimplePredList */
 		SELECT a.*, b.no AS eno, b.checked AS echecked
-		FROM eval_obj_pred1_ref b USE INDEX (datasetno_2)
+		FROM eval_obj_pred${predFlag}_ref b USE INDEX (datasetno_2)
 			INNER JOIN eval_obj a USE INDEX (PRIMARY)
-			ON b.evalobjno = a.no
+				ON b.evalobjno = a.no
+			INNER JOIN v_labeling_evalfile v
+				ON a.file_name = v.imagefile AND v.edatasetno = #{datasetno}
 		WHERE 1=1
 			AND b.datasetno = #{datasetno}
 			<if test='checked != null and checked != ""'>and b.checked = #{checked}</if>
